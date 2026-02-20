@@ -64,6 +64,7 @@ class HomeViewModel @Inject constructor(
                 val domainMonthEntries = monthEntries.map { it.toDomain(typeMap[it.workoutTypeId]) }
                 val domainTodayEntries = todayEntries.map { it.toDomain(typeMap[it.workoutTypeId]) }
 
+                val todayIds = domainTodayEntries.map { it.id }.toSet()
                 val typeCounts = domainMonthEntries
                     .groupBy { it.workoutTypeId }
                     .mapValues { it.value.size }
@@ -73,7 +74,7 @@ class HomeViewModel @Inject constructor(
                 HomeUiState(
                     isLoading = false,
                     todayEntries = domainTodayEntries,
-                    recentEntries = domainMonthEntries.take(10),
+                    recentEntries = domainMonthEntries.filter { it.id !in todayIds }.take(10),
                     workoutTypes = domainTypes,
                     totalWorkoutsThisMonth = domainMonthEntries.size,
                     currentStreak = calculateStreak(domainMonthEntries),

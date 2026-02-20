@@ -1,6 +1,7 @@
 package com.workoutlog.domain.model
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import com.workoutlog.data.local.entity.WorkoutTypeEntity
 
 data class WorkoutType(
@@ -14,7 +15,7 @@ data class WorkoutType(
 fun WorkoutTypeEntity.toDomain() = WorkoutType(
     id = id,
     name = name,
-    color = if (color != null) Color(color) else Color.Gray,
+    color = if (color != null) Color(color.toInt()) else Color.Gray,
     icon = icon,
     isDefault = isDefault
 )
@@ -22,7 +23,7 @@ fun WorkoutTypeEntity.toDomain() = WorkoutType(
 fun WorkoutType.toEntity() = WorkoutTypeEntity(
     id = id,
     name = name,
-    color = color.value.toLong(),
+    color = color.toArgb().toLong(),
     icon = icon,
     isDefault = isDefault
 )

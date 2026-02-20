@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where:*)",
+      "Bash(java -version:*)",
+      "Bash(dir:*)",
+      "Bash(\"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\\\\bin\\\\java.exe\" -version)",
+      "Bash(powershell:*)",
+      "Bash(set ANDROID_HOME:*)",
+      "Bash(set:*)",
+      "Bash(gradlew.bat assembleDebug:*)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew:*)",
+      "Bash(gh auth status:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: complete WorkoutLog Android app\n\nFull-featured workout logging app built with Kotlin, Jetpack Compose,\nMaterial 3, Room, Hilt, and MVVM architecture. Includes workout type\nand entry CRUD, monthly calendar overview, reports with charts,\nExcel/PDF export, JSON backup/restore, theming, onboarding, and search.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git remote:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}

@@ -42,6 +42,10 @@ class OverviewViewModel @Inject constructor(
         loadMonth(YearMonth.now())
     }
 
+    fun refresh() {
+        loadMonth(_uiState.value.currentMonth)
+    }
+
     fun loadMonth(yearMonth: YearMonth) {
         _uiState.value = _uiState.value.copy(currentMonth = yearMonth, isLoading = true)
 

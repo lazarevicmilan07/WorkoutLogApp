@@ -58,6 +58,10 @@ class ReportsViewModel @Inject constructor(
         loadReport()
     }
 
+    fun refresh() {
+        loadReport()
+    }
+
     fun setMonthly(isMonthly: Boolean) {
         _uiState.value = _uiState.value.copy(isMonthly = isMonthly)
         loadReport()
