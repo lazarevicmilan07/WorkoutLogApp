@@ -17,7 +17,11 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: complete WorkoutLog Android app\n\nFull-featured workout logging app built with Kotlin, Jetpack Compose,\nMaterial 3, Room, Hilt, and MVVM architecture. Includes workout type\nand entry CRUD, monthly calendar overview, reports with charts,\nExcel/PDF export, JSON backup/restore, theming, onboarding, and search.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git remote:*)",
       "Bash(git branch:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(cmd /c \"set JAVA_HOME=C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr&& C:\\\\ComData\\\\Projekti\\\\WorkoutLog\\\\gradlew.bat -p C:\\\\ComData\\\\Projekti\\\\WorkoutLog assembleDebug\")",
+      "Bash(cmd /c \"set \"JAVA_HOME=C:Program FilesAndroidAndroid Studiojbr\" && gradlew.bat assembleDebug 2>&1\")",
+      "Bash(export JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\")",
+      "Bash(/c/ComData/Projekti/WorkoutLog/gradlew:*)"
     ]
   }
 }

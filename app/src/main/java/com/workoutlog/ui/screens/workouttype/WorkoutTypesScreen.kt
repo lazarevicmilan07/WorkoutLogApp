@@ -19,12 +19,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.workoutlog.domain.model.WorkoutType
 import com.workoutlog.ui.components.EmptyState
 import com.workoutlog.ui.components.LoadingIndicator
+import com.workoutlog.ui.theme.getWorkoutIcon
 
 @Composable
 fun WorkoutTypesScreen(
@@ -84,44 +83,41 @@ fun WorkoutTypesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(vertical = 8.dp, horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(vertical = 8.dp)
         ) {
             item {
                 Text(
                     text = "Workout Types",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
 
             items(state.types, key = { it.id }) { type ->
-                Card(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onEditType(type.id) },
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(1.dp)
+                        .clickable { onEditType(type.id) }
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(32.dp)
                                 .clip(CircleShape)
                                 .background(type.color.copy(alpha = 0.15f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.FitnessCenter,
+                                imageVector = getWorkoutIcon(type.icon),
                                 contentDescription = null,
                                 tint = type.color,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                         Spacer(Modifier.width(12.dp))
@@ -131,14 +127,22 @@ fun WorkoutTypesScreen(
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.weight(1f)
                         )
-                        IconButton(onClick = { typeToDelete = type }) {
+                        IconButton(
+                            onClick = { typeToDelete = type },
+                            modifier = Modifier.size(36.dp)
+                        ) {
                             Icon(
                                 Icons.Default.Delete,
                                 contentDescription = "Delete",
-                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 60.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
                 }
             }
         }

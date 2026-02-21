@@ -63,11 +63,16 @@ class OverviewViewModel @Inject constructor(
             } ?: entries
 
             val entriesByDate = filteredEntries.groupBy { it.date }
-            val daysWithWorkouts = entries.map { it.date }.distinct().size
-            val daysInMonth = yearMonth.lengthOfMonth()
-            val restDays = daysInMonth - daysWithWorkouts
 
-            val typeCounts = entries.groupBy { it.workoutTypeId }.mapValues { it.value.size }
+            // Exclude "Rest Day" entries from rest day count and favourite calculation
+            val realWorkoutEntries = entries.filter {
+                it.workoutType?.name?.equals("Rest Day", ignoreCase = true) != true
+            }
+            val daysWithRealWorkouts = realWorkoutEntries.map { it.date }.distinct().size
+            val daysInMonth = yearMonth.lengthOfMonth()
+            val restDays = daysInMonth - daysWithRealWorkouts
+
+            val typeCounts = realWorkoutEntries.groupBy { it.workoutTypeId }.mapValues { it.value.size }
             val mostCommonTypeId = typeCounts.maxByOrNull { it.value }?.key
 
             _uiState.value = _uiState.value.copy(

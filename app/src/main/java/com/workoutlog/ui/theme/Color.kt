@@ -1,6 +1,20 @@
 package com.workoutlog.ui.theme
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsBike
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Hiking
+import androidx.compose.material.icons.filled.Hotel
+import androidx.compose.material.icons.filled.Pool
+import androidx.compose.material.icons.filled.Rowing
+import androidx.compose.material.icons.filled.SelfImprovement
+import androidx.compose.material.icons.filled.SportsGymnastics
+import androidx.compose.material.icons.filled.SportsKabaddi
+import androidx.compose.material.icons.filled.SportsMartialArts
+import androidx.compose.material.icons.filled.SportsTennis
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 
 // Primary palette
 val Primary = Color(0xFF3B82F6)
@@ -59,3 +73,22 @@ val WorkoutColors = listOf(
     Color(0xFF7CB342), // Light Green
     Color(0xFFFF7043), // Deep Orange
 )
+
+val WorkoutIcons: Map<String, ImageVector> = mapOf(
+    "fitness_center" to Icons.Default.FitnessCenter,
+    "directions_run" to Icons.AutoMirrored.Filled.DirectionsRun,
+    "directions_bike" to Icons.AutoMirrored.Filled.DirectionsBike,
+    "pool" to Icons.Default.Pool,
+    "self_improvement" to Icons.Default.SelfImprovement,
+    "sports_gymnastics" to Icons.Default.SportsGymnastics,
+    "sports_martial_arts" to Icons.Default.SportsMartialArts,
+    "sports_kabaddi" to Icons.Default.SportsKabaddi,
+    "hiking" to Icons.Default.Hiking,
+    "rowing" to Icons.Default.Rowing,
+    "sports_tennis" to Icons.Default.SportsTennis,
+    "hotel" to Icons.Default.Hotel,
+)
+
+fun getWorkoutIcon(iconName: String?): ImageVector {
+    return iconName?.let { WorkoutIcons[it] } ?: Icons.Default.FitnessCenter
+}

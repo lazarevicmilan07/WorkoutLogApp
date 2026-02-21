@@ -13,22 +13,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -42,10 +34,11 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.workoutlog.ui.components.LoadingIndicator
@@ -115,13 +108,13 @@ fun OverviewScreen(
                 }
             }
 
-            // Stats
+            // Stats — compact row
             item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     StatCard(
                         label = "Workouts",
@@ -239,44 +232,45 @@ fun MonthCalendar(
 
                     if (dayNum in 1..daysInMonth) {
                         val date = yearMonth.atDay(dayNum)
-                        val hasEntries = entriesByDate.containsKey(date)
+                        val dayEntries = entriesByDate[date]
+                        val hasEntries = dayEntries != null
                         val isToday = date == today
+                        val entryColor = dayEntries?.firstOrNull()?.workoutType?.color
+
+                        val bgColor = when {
+                            hasEntries && entryColor != null -> entryColor.copy(alpha = 0.3f)
+                            isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            else -> Color.Transparent
+                        }
+
+                        // Determine text color based on background brightness
+                        val textColor = when {
+                            hasEntries && entryColor != null -> {
+                                if (entryColor.copy(alpha = 0.3f).luminance() > 0.5f)
+                                    Color(0xFF1A1A1A)
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            }
+                            isToday -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurface
+                        }
 
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(1f)
                                 .padding(2.dp)
-                                .clip(CircleShape)
-                                .then(
-                                    if (isToday) Modifier.background(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                    ) else Modifier
-                                )
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(bgColor)
                                 .clickable { onDateClick(date) },
                             contentAlignment = Alignment.Center
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "$dayNum",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isToday) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurface
-                                )
-                                if (hasEntries) {
-                                    val entry = entriesByDate[date]?.firstOrNull()
-                                    Box(
-                                        modifier = Modifier
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                entry?.workoutType?.color
-                                                    ?: MaterialTheme.colorScheme.primary
-                                            )
-                                    )
-                                }
-                            }
+                            Text(
+                                text = "$dayNum",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = if (isToday || hasEntries) FontWeight.Bold else FontWeight.Normal,
+                                color = textColor
+                            )
                         }
                     } else {
                         Spacer(Modifier.weight(1f))

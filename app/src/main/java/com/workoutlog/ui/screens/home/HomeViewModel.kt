@@ -27,10 +27,7 @@ data class HomeUiState(
     val workoutTypes: List<WorkoutType> = emptyList(),
     val totalWorkoutsThisMonth: Int = 0,
     val currentStreak: Int = 0,
-    val mostCommonType: WorkoutType? = null,
-    val searchQuery: String = "",
-    val searchResults: List<WorkoutEntry> = emptyList(),
-    val isSearching: Boolean = false
+    val mostCommonType: WorkoutType? = null
 )
 
 @HiltViewModel
@@ -65,7 +62,12 @@ class HomeViewModel @Inject constructor(
                 val domainTodayEntries = todayEntries.map { it.toDomain(typeMap[it.workoutTypeId]) }
 
                 val todayIds = domainTodayEntries.map { it.id }.toSet()
-                val typeCounts = domainMonthEntries
+
+                // Exclude "Rest Day" entries from favourite calculation
+                val nonRestEntries = domainMonthEntries.filter {
+                    it.workoutType?.name?.equals("Rest Day", ignoreCase = true) != true
+                }
+                val typeCounts = nonRestEntries
                     .groupBy { it.workoutTypeId }
                     .mapValues { it.value.size }
                 val mostCommonTypeId = typeCounts.maxByOrNull { it.value }?.key
@@ -82,23 +84,6 @@ class HomeViewModel @Inject constructor(
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
                 .collect { _uiState.value = it }
-        }
-    }
-
-    fun onSearchQueryChanged(query: String) {
-        _uiState.value = _uiState.value.copy(searchQuery = query, isSearching = query.isNotEmpty())
-        if (query.isNotEmpty()) {
-            viewModelScope.launch {
-                val types = typeRepository.getAll()
-                val typeMap = types.associate { it.id to it.toDomain() }
-                entryRepository.searchEntries(query).collect { entries ->
-                    _uiState.value = _uiState.value.copy(
-                        searchResults = entries.map { it.toDomain(typeMap[it.workoutTypeId]) }
-                    )
-                }
-            }
-        } else {
-            _uiState.value = _uiState.value.copy(searchResults = emptyList())
         }
     }
 
