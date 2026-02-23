@@ -1,8 +1,6 @@
 package com.workoutlog.ui.screens.entry
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,13 +17,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -59,7 +58,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.workoutlog.domain.model.toEpochMilli
 import com.workoutlog.ui.components.LoadingIndicator
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -114,28 +112,24 @@ fun AddEditEntryScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Date picker
-            Text(
-                text = "Date",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(Modifier.height(8.dp))
+            // Date picker row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(MaterialTheme.shapes.medium)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .clickable { showDatePicker = true }
-                    .padding(16.dp),
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     Icons.Default.CalendarToday,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.width(12.dp))
                 Text(
@@ -144,93 +138,79 @@ fun AddEditEntryScreen(
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
-
             // Workout type selector
-            Text(
-                text = "Workout Type",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(Modifier.height(8.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                state.workoutTypes.forEach { type ->
-                    val isSelected = state.selectedTypeId == type.id
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { viewModel.onTypeSelected(type.id) },
-                        label = { Text(type.name) },
-                        leadingIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .clip(CircleShape)
-                                    .background(type.color)
+            Column {
+                Text(
+                    text = "Workout Type",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(6.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    state.workoutTypes.forEach { type ->
+                        val isSelected = state.selectedTypeId == type.id
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { viewModel.onTypeSelected(type.id) },
+                            label = { Text(type.name) },
+                            leadingIcon = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .clip(CircleShape)
+                                        .background(type.color)
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = type.color.copy(alpha = 0.15f)
                             )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = type.color.copy(alpha = 0.15f)
                         )
-                    )
+                    }
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
-
-            // Duration
-            Text(
-                text = "Duration (minutes)",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = state.durationMinutes,
-                onValueChange = viewModel::onDurationChanged,
+            // Duration & Calories side by side
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("e.g. 45") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            // Calories
-            Text(
-                text = "Calories Burned",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = state.caloriesBurned,
-                onValueChange = viewModel::onCaloriesChanged,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("e.g. 300") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true
-            )
-
-            Spacer(Modifier.height(16.dp))
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = state.durationMinutes,
+                    onValueChange = viewModel::onDurationChanged,
+                    modifier = Modifier.weight(1f),
+                    label = { Text("Duration (min)") },
+                    placeholder = { Text("45") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+                OutlinedTextField(
+                    value = state.caloriesBurned,
+                    onValueChange = viewModel::onCaloriesChanged,
+                    modifier = Modifier.weight(1f),
+                    label = { Text("Calories") },
+                    placeholder = { Text("300") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
 
             // Note
-            Text(
-                text = "Note",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = state.note,
                 onValueChange = viewModel::onNoteChanged,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp),
+                    .height(100.dp),
+                label = { Text("Note") },
                 placeholder = { Text("How was your workout?") },
-                maxLines = 5
+                maxLines = 4,
+                shape = RoundedCornerShape(12.dp)
             )
         }
 

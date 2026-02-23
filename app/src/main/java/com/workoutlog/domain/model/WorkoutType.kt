@@ -9,7 +9,8 @@ data class WorkoutType(
     val name: String,
     val color: Color = Color.Gray,
     val icon: String? = null,
-    val isDefault: Boolean = false
+    val isDefault: Boolean = false,
+    val isRestDay: Boolean = false
 )
 
 fun WorkoutTypeEntity.toDomain() = WorkoutType(
@@ -17,7 +18,8 @@ fun WorkoutTypeEntity.toDomain() = WorkoutType(
     name = name,
     color = if (color != null) Color(color.toInt()) else Color.Gray,
     icon = icon,
-    isDefault = isDefault
+    isDefault = isDefault,
+    isRestDay = isRestDay
 )
 
 fun WorkoutType.toEntity() = WorkoutTypeEntity(
@@ -25,5 +27,6 @@ fun WorkoutType.toEntity() = WorkoutTypeEntity(
     name = name,
     color = color.toArgb().toLong(),
     icon = icon,
-    isDefault = isDefault
+    isDefault = isDefault,
+    isRestDay = isRestDay
 )

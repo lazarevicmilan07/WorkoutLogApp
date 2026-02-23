@@ -13,7 +13,6 @@ import androidx.navigation.navArgument
 import com.workoutlog.ui.screens.entry.AddEditEntryScreen
 import com.workoutlog.ui.screens.home.HomeScreen
 import com.workoutlog.ui.screens.onboarding.OnboardingScreen
-import com.workoutlog.ui.screens.overview.OverviewScreen
 import com.workoutlog.ui.screens.reports.ReportsScreen
 import com.workoutlog.ui.screens.settings.SettingsScreen
 import com.workoutlog.ui.screens.workouttype.AddEditWorkoutTypeScreen
@@ -44,20 +43,6 @@ fun NavGraph(
 
         composable(Screen.Home.route) {
             HomeScreen(
-                onAddEntry = { date ->
-                    navController.navigate(Screen.AddEditEntry.createRoute(date = date))
-                },
-                onEditEntry = { entryId ->
-                    navController.navigate(Screen.AddEditEntry.createRoute(entryId = entryId))
-                },
-                onNavigateToOverview = {
-                    navController.navigate(Screen.Overview.route)
-                }
-            )
-        }
-
-        composable(Screen.Overview.route) {
-            OverviewScreen(
                 onAddEntry = { date ->
                     navController.navigate(Screen.AddEditEntry.createRoute(date = date))
                 },

@@ -21,7 +21,8 @@
       "Bash(cmd /c \"set JAVA_HOME=C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr&& C:\\\\ComData\\\\Projekti\\\\WorkoutLog\\\\gradlew.bat -p C:\\\\ComData\\\\Projekti\\\\WorkoutLog assembleDebug\")",
       "Bash(cmd /c \"set \"JAVA_HOME=C:Program FilesAndroidAndroid Studiojbr\" && gradlew.bat assembleDebug 2>&1\")",
       "Bash(export JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\")",
-      "Bash(/c/ComData/Projekti/WorkoutLog/gradlew:*)"
+      "Bash(/c/ComData/Projekti/WorkoutLog/gradlew:*)",
+      "Bash(./gradlew assembleDebug:*)"
     ]
   }
 }

@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.workoutlog.ui.components.LoadingIndicator
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.Switch
 import com.workoutlog.ui.theme.WorkoutColors
 import com.workoutlog.ui.theme.WorkoutIcons
 
@@ -196,6 +198,32 @@ fun AddEditWorkoutTypeScreen(
                         )
                     }
                 }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // Rest Day toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Rest Day",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "Mark this type as a rest day",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = state.isRestDay,
+                    onCheckedChange = viewModel::onRestDayChanged
+                )
             }
         }
     }

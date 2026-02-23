@@ -64,13 +64,13 @@ class OverviewViewModel @Inject constructor(
 
             val entriesByDate = filteredEntries.groupBy { it.date }
 
-            // Exclude "Rest Day" entries from rest day count and favourite calculation
-            val realWorkoutEntries = entries.filter {
-                it.workoutType?.name?.equals("Rest Day", ignoreCase = true) != true
-            }
-            val daysWithRealWorkouts = realWorkoutEntries.map { it.date }.distinct().size
-            val daysInMonth = yearMonth.lengthOfMonth()
-            val restDays = daysInMonth - daysWithRealWorkouts
+            // Use isRestDay flag for rest day count and favourite calculation
+            val restDays = entries
+                .filter { it.workoutType?.isRestDay == true }
+                .map { it.date }
+                .distinct()
+                .size
+            val realWorkoutEntries = entries.filter { it.workoutType?.isRestDay != true }
 
             val typeCounts = realWorkoutEntries.groupBy { it.workoutTypeId }.mapValues { it.value.size }
             val mostCommonTypeId = typeCounts.maxByOrNull { it.value }?.key

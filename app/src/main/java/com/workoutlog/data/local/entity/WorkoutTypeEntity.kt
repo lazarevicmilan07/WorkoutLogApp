@@ -11,5 +11,6 @@ data class WorkoutTypeEntity(
     val color: Long? = null,
     val icon: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
-    val isDefault: Boolean = false
+    val isDefault: Boolean = false,
+    val isRestDay: Boolean = false
 )

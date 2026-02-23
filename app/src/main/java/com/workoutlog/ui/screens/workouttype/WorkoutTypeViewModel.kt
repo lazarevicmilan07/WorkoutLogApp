@@ -54,6 +54,7 @@ data class AddEditTypeUiState(
     val name: String = "",
     val selectedColor: Color = Color.Gray,
     val icon: String = "fitness_center",
+    val isRestDay: Boolean = false,
     val isSaving: Boolean = false
 )
 
@@ -92,7 +93,8 @@ class AddEditWorkoutTypeViewModel @Inject constructor(
                         typeId = type.id,
                         name = type.name,
                         selectedColor = type.color,
-                        icon = type.icon ?: "fitness_center"
+                        icon = type.icon ?: "fitness_center",
+                        isRestDay = type.isRestDay
                     )
                     return@launch
                 }
@@ -113,6 +115,10 @@ class AddEditWorkoutTypeViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(icon = icon)
     }
 
+    fun onRestDayChanged(isRestDay: Boolean) {
+        _uiState.value = _uiState.value.copy(isRestDay = isRestDay)
+    }
+
     fun save() {
         val state = _uiState.value
         if (state.name.isBlank()) {
@@ -127,7 +133,8 @@ class AddEditWorkoutTypeViewModel @Inject constructor(
                 id = if (state.isEditing) state.typeId else 0,
                 name = state.name.trim(),
                 color = state.selectedColor,
-                icon = state.icon
+                icon = state.icon,
+                isRestDay = state.isRestDay
             )
 
             if (state.isEditing) {

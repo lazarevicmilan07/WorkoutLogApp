@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -38,7 +39,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.workoutlog.ui.components.LoadingIndicator
@@ -236,6 +239,7 @@ fun MonthCalendar(
                         val hasEntries = dayEntries != null
                         val isToday = date == today
                         val entryColor = dayEntries?.firstOrNull()?.workoutType?.color
+                        val entryName = dayEntries?.firstOrNull()?.workoutType?.name
 
                         val bgColor = when {
                             hasEntries && entryColor != null -> entryColor.copy(alpha = 0.3f)
@@ -259,18 +263,37 @@ fun MonthCalendar(
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(1f)
-                                .padding(2.dp)
+                                .padding(1.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(bgColor)
                                 .clickable { onDateClick(date) },
-                            contentAlignment = Alignment.Center
+                            contentAlignment = Alignment.TopCenter
                         ) {
-                            Text(
-                                text = "$dayNum",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = if (isToday || hasEntries) FontWeight.Bold else FontWeight.Normal,
-                                color = textColor
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(horizontal = 1.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "$dayNum",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = if (isToday || hasEntries) FontWeight.Bold else FontWeight.Normal,
+                                    color = textColor,
+                                    fontSize = 11.sp,
+                                    lineHeight = 12.sp
+                                )
+                                if (entryName != null) {
+                                    Text(
+                                        text = entryName,
+                                        fontSize = 9.sp,
+                                        lineHeight = 10.sp,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        color = textColor.copy(alpha = 0.85f),
+                                        textAlign = TextAlign.Center,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
                         }
                     } else {
                         Spacer(Modifier.weight(1f))

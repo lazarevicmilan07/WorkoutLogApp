@@ -124,7 +124,12 @@ class ReportsViewModel @Inject constructor(
         val typeCounts = entryRepository.getWorkoutTypeCountsBetween(startDate, endDate)
         val dailyCounts = entryRepository.getDailyCountsBetween(startDate, endDate)
 
-        val daysWithWorkouts = entries.map { it.date }.distinct().size
+        val domainEntries = entries.map { it.toDomain(typeMap[it.workoutTypeId]) }
+        val restDaysCount = domainEntries
+            .filter { it.workoutType?.isRestDay == true }
+            .map { it.date }
+            .distinct()
+            .size
         val totalDuration = entries.sumOf { it.durationMinutes ?: 0 }
         val totalCalories = entries.sumOf { it.caloriesBurned ?: 0 }
 
@@ -132,7 +137,7 @@ class ReportsViewModel @Inject constructor(
             year = year,
             month = month,
             totalWorkouts = entries.size,
-            totalRestDays = yearMonth.lengthOfMonth() - daysWithWorkouts,
+            totalRestDays = restDaysCount,
             totalDuration = totalDuration,
             totalCalories = totalCalories,
             workoutTypeCounts = typeCounts.mapNotNull { tc ->
@@ -167,12 +172,17 @@ class ReportsViewModel @Inject constructor(
             MonthlyCountData(month, monthlyGroups[month]?.size ?: 0)
         }
 
-        val daysWithWorkouts = entries.map { it.date }.distinct().size
+        val domainYearEntries = entries.map { it.toDomain(typeMap[it.workoutTypeId]) }
+        val yearlyRestDays = domainYearEntries
+            .filter { it.workoutType?.isRestDay == true }
+            .map { it.date }
+            .distinct()
+            .size
 
         val report = YearlyReport(
             year = year,
             totalWorkouts = entries.size,
-            totalRestDays = (if (java.time.Year.of(year).isLeap) 366 else 365) - daysWithWorkouts,
+            totalRestDays = yearlyRestDays,
             monthlyCounts = monthlyCounts,
             workoutTypeCounts = typeCounts.mapNotNull { tc ->
                 typeMap[tc.workoutTypeId]?.let { WorkoutTypeCountData(it, tc.count) }

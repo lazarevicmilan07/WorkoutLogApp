@@ -1,11 +1,18 @@
 package com.workoutlog.ui.screens.home
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,45 +22,48 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.workoutlog.domain.model.WorkoutEntry
-import com.workoutlog.ui.components.EmptyState
 import com.workoutlog.ui.components.LoadingIndicator
 import com.workoutlog.ui.components.StatCard
+import com.workoutlog.ui.screens.overview.MonthCalendar
 import com.workoutlog.ui.theme.getWorkoutIcon
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -63,19 +73,16 @@ import java.time.format.FormatStyle
 fun HomeScreen(
     onAddEntry: (String?) -> Unit,
     onEditEntry: (Long) -> Unit,
-    onNavigateToOverview: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { onAddEntry(null) },
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 16.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add workout")
             }
@@ -86,148 +93,147 @@ fun HomeScreen(
             return@Scaffold
         }
 
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(bottom = 88.dp)
+                .padding(padding)
         ) {
             // Header
-            item {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                    Text(
-                        text = "Workout Log",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = LocalDate.now().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // Stats row — 3 compact cards in a Row
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    StatCard(
-                        label = "This Month",
-                        value = "${state.totalWorkoutsThisMonth}",
-                        icon = Icons.Default.FitnessCenter,
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatCard(
-                        label = "Streak",
-                        value = "${state.currentStreak} days",
-                        icon = Icons.Default.LocalFireDepartment,
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatCard(
-                        label = "Favorite",
-                        value = state.mostCommonType?.name ?: "-",
-                        icon = Icons.AutoMirrored.Filled.TrendingUp,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-
-            // Today's workouts
-            item {
-                Spacer(Modifier.height(24.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Today",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    if (state.todayEntries.isEmpty()) {
-                        Text(
-                            text = "No workouts yet",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            items(state.todayEntries, key = { it.id }) { entry ->
-                WorkoutEntryItem(
-                    entry = entry,
-                    onClick = { onEditEntry(entry.id) },
-                    onDelete = {
-                        viewModel.deleteEntry(entry)
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = "Workout deleted",
-                                actionLabel = "Undo",
-                                duration = SnackbarDuration.Short
-                            )
-                        }
-                    }
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Text(
+                    text = "Workout Log",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = LocalDate.now().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            // Recent workouts
-            item {
-                Spacer(Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Recent",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+            // Stats row — equal height cards
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                StatCard(
+                    label = "This Month",
+                    value = "${state.totalWorkouts}",
+                    icon = Icons.Default.FitnessCenter,
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    label = "Rest Days",
+                    value = "${state.restDaysCount}",
+                    icon = Icons.Default.Hotel,
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    label = "Streak",
+                    value = "${state.currentStreak} days",
+                    icon = Icons.Default.LocalFireDepartment,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Filter chips
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    FilterChip(
+                        selected = state.selectedFilter == null,
+                        onClick = { viewModel.setFilter(null) },
+                        label = { Text("All") }
                     )
-                    Text(
-                        text = "See all",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable { onNavigateToOverview() }
+                }
+                items(state.workoutTypes) { type ->
+                    FilterChip(
+                        selected = state.selectedFilter == type.id,
+                        onClick = { viewModel.setFilter(type.id) },
+                        label = { Text(type.name) }
                     )
                 }
             }
 
-            if (state.recentEntries.isEmpty()) {
-                item {
-                    EmptyState(
-                        title = "No workouts yet",
-                        subtitle = "Tap + to add your first workout",
-                        modifier = Modifier.height(200.dp)
-                    )
+            // Month selector
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { viewModel.previousMonth() }) {
+                    Icon(Icons.Default.ChevronLeft, contentDescription = "Previous month")
                 }
-            } else {
-                items(state.recentEntries, key = { it.id }) { entry ->
-                    WorkoutEntryItem(
-                        entry = entry,
-                        onClick = { onEditEntry(entry.id) },
-                        onDelete = {
-                            viewModel.deleteEntry(entry)
-                            scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    message = "Workout deleted",
-                                    actionLabel = "Undo",
-                                    duration = SnackbarDuration.Short
-                                )
+                Text(
+                    text = state.currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                IconButton(onClick = { viewModel.nextMonth() }) {
+                    Icon(Icons.Default.ChevronRight, contentDescription = "Next month")
+                }
+            }
+
+            // Calendar grid with swipe gesture — fills remaining space
+            val dragAccumulator = remember { mutableFloatStateOf(0f) }
+
+            AnimatedContent(
+                targetState = state.currentMonth,
+                transitionSpec = {
+                    if (targetState > initialState) {
+                        slideInHorizontally { width -> width } togetherWith
+                                slideOutHorizontally { width -> -width }
+                    } else {
+                        slideInHorizontally { width -> -width } togetherWith
+                                slideOutHorizontally { width -> width }
+                    } using SizeTransform(clip = false)
+                },
+                label = "calendar_transition",
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .pointerInput(Unit) {
+                        detectHorizontalDragGestures(
+                            onDragStart = { dragAccumulator.floatValue = 0f },
+                            onDragEnd = {
+                                if (dragAccumulator.floatValue > 100) {
+                                    viewModel.previousMonth()
+                                } else if (dragAccumulator.floatValue < -100) {
+                                    viewModel.nextMonth()
+                                }
+                                dragAccumulator.floatValue = 0f
+                            },
+                            onDragCancel = { dragAccumulator.floatValue = 0f },
+                            onHorizontalDrag = { _, amount ->
+                                dragAccumulator.floatValue += amount
                             }
+                        )
+                    }
+            ) { month ->
+                MonthCalendar(
+                    yearMonth = month,
+                    entriesByDate = state.entriesByDate,
+                    onDateClick = { date ->
+                        // If entries exist on this date, edit the first one; otherwise add new
+                        val existing = state.entriesByDate[date]
+                        if (!existing.isNullOrEmpty()) {
+                            onEditEntry(existing.first().id)
+                        } else {
+                            onAddEntry(date.toString())
                         }
-                    )
-                }
+                    },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp)
+                )
             }
         }
     }

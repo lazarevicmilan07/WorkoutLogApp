@@ -23,7 +23,9 @@ object DatabaseModule {
             context,
             WorkoutDatabase::class.java,
             WorkoutDatabase.DATABASE_NAME
-        ).build()
+        )
+            .addMigrations(WorkoutDatabase.MIGRATION_1_2)
+            .build()
     }
 
     @Provides

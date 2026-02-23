@@ -59,7 +59,8 @@ fun WorkoutTypesScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddType,
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 16.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add workout type")
             }
@@ -83,7 +84,7 @@ fun WorkoutTypesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(vertical = 8.dp)
+            contentPadding = PaddingValues(top = 8.dp, bottom = 88.dp)
         ) {
             item {
                 Text(

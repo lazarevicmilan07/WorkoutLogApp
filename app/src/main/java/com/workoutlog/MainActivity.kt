@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -113,9 +114,11 @@ fun MainContent(startDestination: String) {
             }
         }
     ) { innerPadding ->
-        NavGraph(
-            navController = navController,
-            startDestination = startDestination
-        )
+        Box(modifier = Modifier.padding(innerPadding)) {
+            NavGraph(
+                navController = navController,
+                startDestination = startDestination
+            )
+        }
     }
 }
