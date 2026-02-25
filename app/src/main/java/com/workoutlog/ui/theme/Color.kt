@@ -74,6 +74,13 @@ val WorkoutColors = listOf(
     Color(0xFFFF7043), // Deep Orange
 )
 
+// Nav bar
+val NavBarAccentLight = Color(0xFFB8A970)
+val NavBarAccentDark = Color(0xFFD4C896)
+val NavBarBgLight = Color(0xFFF5F5F0)
+val NavBarBgDark = Color(0xFF1E1E1E)
+val NavBarUnselected = Color(0xFF8A8A7A)
+
 val WorkoutIcons: Map<String, ImageVector> = mapOf(
     "fitness_center" to Icons.Default.FitnessCenter,
     "directions_run" to Icons.AutoMirrored.Filled.DirectionsRun,

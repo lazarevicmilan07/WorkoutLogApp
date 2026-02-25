@@ -1,7 +1,11 @@
 package com.workoutlog.ui.screens.reports
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,16 +15,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.TableChart
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,15 +37,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.lifecycle.Lifecycle
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,7 +56,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -58,17 +69,25 @@ import com.workoutlog.domain.model.MonthlyCountData
 import com.workoutlog.domain.model.WorkoutTypeCountData
 import com.workoutlog.ui.components.EmptyState
 import com.workoutlog.ui.components.LoadingIndicator
+import kotlinx.coroutines.launch
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 
 @Composable
 fun ReportsScreen(
+    initialIsMonthly: Boolean = true,
     viewModel: ReportsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showPeriodPicker by remember { mutableStateOf(false) }
 
-    // Refresh data when returning to this screen
+    // Set mode once on first composition
+    LaunchedEffect(Unit) {
+        viewModel.setMonthly(initialIsMonthly)
+    }
+
     LifecycleResumeEffect(Unit) {
         viewModel.refresh()
         onPauseOrDispose { }
@@ -83,6 +102,32 @@ fun ReportsScreen(
         }
     }
 
+    // Swipe animation for period changes
+    val dragOffset = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
+    val screenWidthPx = with(density) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
+
+    fun animatePrevious() {
+        scope.launch {
+            // Previous: slide out RIGHT, come in from LEFT
+            dragOffset.animateTo(screenWidthPx, tween(150))
+            viewModel.previousPeriod()
+            dragOffset.snapTo(-screenWidthPx)
+            dragOffset.animateTo(0f, tween(200))
+        }
+    }
+
+    fun animateNext() {
+        scope.launch {
+            // Next: slide out LEFT, come in from RIGHT
+            dragOffset.animateTo(-screenWidthPx, tween(150))
+            viewModel.nextPeriod()
+            dragOffset.snapTo(screenWidthPx)
+            dragOffset.animateTo(0f, tween(200))
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
@@ -91,31 +136,15 @@ fun ReportsScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Tab selector
-            TabRow(
-                selectedTabIndex = if (state.isMonthly) 0 else 1
-            ) {
-                Tab(
-                    selected = state.isMonthly,
-                    onClick = { viewModel.setMonthly(true) },
-                    text = { Text("Monthly") }
-                )
-                Tab(
-                    selected = !state.isMonthly,
-                    onClick = { viewModel.setMonthly(false) },
-                    text = { Text("Yearly") }
-                )
-            }
-
-            // Period selector
+            // Period selector with swipe
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { viewModel.previousPeriod() }) {
+                IconButton(onClick = { animatePrevious() }) {
                     Icon(Icons.Default.ChevronLeft, contentDescription = "Previous")
                 }
                 Text(
@@ -126,9 +155,10 @@ fun ReportsScreen(
                         "${state.selectedYear}"
                     },
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { showPeriodPicker = true }
                 )
-                IconButton(onClick = { viewModel.nextPeriod() }) {
+                IconButton(onClick = { animateNext() }) {
                     Icon(Icons.Default.ChevronRight, contentDescription = "Next")
                 }
             }
@@ -157,15 +187,252 @@ fun ReportsScreen(
                 }
             }
 
-            if (state.isLoading) {
-                LoadingIndicator()
-            } else if (state.isMonthly) {
-                MonthlyReportContent(state)
-            } else {
-                YearlyReportContent(state)
+            // Content with swipe gesture
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .pointerInput(Unit) {
+                        detectHorizontalDragGestures(
+                            onDragStart = { scope.launch { dragOffset.stop() } },
+                            onDragEnd = {
+                                scope.launch {
+                                    when {
+                                        dragOffset.value > 100 -> {
+                                            dragOffset.animateTo(screenWidthPx, tween(150))
+                                            viewModel.previousPeriod()
+                                            dragOffset.snapTo(-screenWidthPx)
+                                            dragOffset.animateTo(0f, tween(200))
+                                        }
+                                        dragOffset.value < -100 -> {
+                                            dragOffset.animateTo(-screenWidthPx, tween(150))
+                                            viewModel.nextPeriod()
+                                            dragOffset.snapTo(screenWidthPx)
+                                            dragOffset.animateTo(0f, tween(200))
+                                        }
+                                        else -> dragOffset.animateTo(0f, tween(150))
+                                    }
+                                }
+                            },
+                            onDragCancel = {
+                                scope.launch { dragOffset.animateTo(0f, tween(150)) }
+                            },
+                            onHorizontalDrag = { _, delta ->
+                                scope.launch { dragOffset.snapTo(dragOffset.value + delta) }
+                            }
+                        )
+                    }
+            ) {
+                Box(modifier = Modifier.offset { IntOffset(dragOffset.value.roundToInt(), 0) }) {
+                    if (state.isLoading) {
+                        LoadingIndicator()
+                    } else if (state.isMonthly) {
+                        MonthlyReportContent(state)
+                    } else {
+                        YearlyReportContent(state)
+                    }
+                }
             }
         }
     }
+
+    // Period picker dialog
+    if (showPeriodPicker) {
+        if (state.isMonthly) {
+            MonthYearPickerDialogForStats(
+                currentYear = state.selectedYear,
+                currentMonth = state.selectedMonth,
+                onDismiss = { showPeriodPicker = false },
+                onConfirm = { year, month ->
+                    viewModel.goToPeriod(year, month)
+                    showPeriodPicker = false
+                }
+            )
+        } else {
+            YearPickerDialog(
+                currentYear = state.selectedYear,
+                onDismiss = { showPeriodPicker = false },
+                onConfirm = { year ->
+                    viewModel.setYear(year)
+                    showPeriodPicker = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun MonthYearPickerDialogForStats(
+    currentYear: Int,
+    currentMonth: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int, Int) -> Unit
+) {
+    var step by remember { mutableStateOf(0) }
+    var selectedMonth by remember { mutableStateOf(currentMonth) }
+    var selectedYear by remember { mutableStateOf(currentYear) }
+
+    val monthLabels = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    val baseYear = YearMonth.now().year
+    val years = ((baseYear - 5)..(baseYear + 2)).toList()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = if (step == 0) "Select Month" else "Select Year",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        text = {
+            if (step == 0) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    monthLabels.chunked(4).forEachIndexed { rowIndex, rowMonths ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rowMonths.forEachIndexed { colIndex, label ->
+                                val monthNum = rowIndex * 4 + colIndex + 1
+                                val isSelected = selectedMonth == monthNum
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            if (isSelected) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.surfaceVariant
+                                        )
+                                        .clickable { selectedMonth = monthNum; step = 1 }
+                                        .padding(vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    years.chunked(4).forEach { rowYears ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rowYears.forEach { year ->
+                                val isSelected = selectedYear == year
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            if (isSelected) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.surfaceVariant
+                                        )
+                                        .clickable { selectedYear = year }
+                                        .padding(vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "$year",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            repeat(4 - rowYears.size) { Spacer(modifier = Modifier.weight(1f)) }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (step == 1) {
+                TextButton(onClick = { onConfirm(selectedYear, selectedMonth) }) { Text("OK") }
+            }
+        },
+        dismissButton = {
+            if (step == 1) {
+                TextButton(onClick = { step = 0 }) { Text("Back") }
+            } else {
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            }
+        }
+    )
+}
+
+@Composable
+private fun YearPickerDialog(
+    currentYear: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    var selectedYear by remember { mutableStateOf(currentYear) }
+    val baseYear = YearMonth.now().year
+    val years = ((baseYear - 5)..(baseYear + 2)).toList()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Select Year",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                years.chunked(4).forEach { rowYears ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        rowYears.forEach { year ->
+                            val isSelected = selectedYear == year
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                    .clickable { selectedYear = year }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "$year",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        repeat(4 - rowYears.size) { Spacer(modifier = Modifier.weight(1f)) }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(selectedYear) }) { Text("OK") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable
@@ -181,7 +448,6 @@ fun MonthlyReportContent(state: ReportsUiState) {
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Summary stats
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -201,7 +467,6 @@ fun MonthlyReportContent(state: ReportsUiState) {
             }
         }
 
-        // Pie chart
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -227,7 +492,6 @@ fun MonthlyReportContent(state: ReportsUiState) {
             }
         }
 
-        // Bar chart
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -277,7 +541,6 @@ fun YearlyReportContent(state: ReportsUiState) {
             }
         }
 
-        // Monthly bar chart
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -301,7 +564,6 @@ fun YearlyReportContent(state: ReportsUiState) {
             }
         }
 
-        // Pie chart
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -360,28 +622,22 @@ fun PieChart(
     modifier: Modifier = Modifier
 ) {
     if (data.isEmpty()) return
-
     val total = data.sumOf { it.count }.toFloat()
-
     Canvas(modifier = modifier) {
         val diameter = minOf(size.width, size.height) * 0.8f
-        val topLeft = Offset(
-            (size.width - diameter) / 2f,
-            (size.height - diameter) / 2f
-        )
+        val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
         val arcSize = Size(diameter, diameter)
         var startAngle = -90f
-
         data.forEach { item ->
             val sweep = (item.count / total) * 360f
             drawArc(
                 color = item.workoutType.color,
                 startAngle = startAngle,
-                sweepAngle = sweep,
+                sweepAngle = sweep - 2f,
                 useCenter = false,
                 topLeft = topLeft,
                 size = arcSize,
-                style = Stroke(width = 40f, cap = StrokeCap.Butt)
+                style = Stroke(width = 44f, cap = StrokeCap.Butt)
             )
             startAngle += sweep
         }
@@ -424,26 +680,20 @@ fun DailyBarChart(
 ) {
     val primary = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
-    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val maxCount = data.maxOfOrNull { it.count } ?: 1
 
     Canvas(modifier = modifier) {
         val barWidth = size.width / daysInMonth
         val dataMap = data.associate { it.day to it.count }
-
         for (day in 1..daysInMonth) {
             val count = dataMap[day] ?: 0
             val barHeight = if (maxCount > 0) (count.toFloat() / maxCount) * (size.height - 20f) else 0f
             val x = (day - 1) * barWidth
-
-            // Background bar
             drawRect(
                 color = surfaceVariant,
                 topLeft = Offset(x + barWidth * 0.15f, 0f),
                 size = Size(barWidth * 0.7f, size.height - 20f)
             )
-
-            // Data bar
             if (count > 0) {
                 drawRect(
                     color = primary,
@@ -469,17 +719,14 @@ fun MonthlyBarChart(
     Canvas(modifier = modifier) {
         val barWidth = size.width / 12f
         val chartHeight = size.height - 24f
-
         data.forEachIndexed { index, item ->
             val barHeight = if (maxCount > 0) (item.count.toFloat() / maxCount) * chartHeight else 0f
             val x = index * barWidth
-
             drawRect(
                 color = surfaceVariant,
                 topLeft = Offset(x + barWidth * 0.2f, 0f),
                 size = Size(barWidth * 0.6f, chartHeight)
             )
-
             if (item.count > 0) {
                 drawRect(
                     color = primary,
@@ -487,7 +734,6 @@ fun MonthlyBarChart(
                     size = Size(barWidth * 0.6f, barHeight)
                 )
             }
-
             drawContext.canvas.nativeCanvas.drawText(
                 months[index],
                 x + barWidth / 2f,

@@ -1,6 +1,5 @@
 package com.workoutlog.ui.screens.entry
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.workoutlog.data.repository.WorkoutEntryRepository
@@ -20,7 +19,7 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 data class EntryUiState(
-    val isLoading: Boolean = true,
+    val isLoading: Boolean = false,
     val isEditing: Boolean = false,
     val entryId: Long = 0,
     val date: LocalDate = LocalDate.now(),
@@ -40,13 +39,9 @@ sealed class EntryEvent {
 
 @HiltViewModel
 class EntryViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
     private val entryRepository: WorkoutEntryRepository,
     private val typeRepository: WorkoutTypeRepository
 ) : ViewModel() {
-
-    private val entryId: Long = savedStateHandle.get<Long>("entryId") ?: -1L
-    private val dateArg: String = savedStateHandle.get<String>("date") ?: ""
 
     private val _uiState = MutableStateFlow(EntryUiState())
     val uiState: StateFlow<EntryUiState> = _uiState.asStateFlow()
@@ -54,11 +49,8 @@ class EntryViewModel @Inject constructor(
     private val _events = MutableSharedFlow<EntryEvent>()
     val events = _events.asSharedFlow()
 
-    init {
-        loadData()
-    }
-
-    private fun loadData() {
+    fun setup(entryId: Long, dateArg: String) {
+        _uiState.value = EntryUiState(isLoading = true)
         viewModelScope.launch {
             val types = typeRepository.getAll().map { it.toDomain() }
 

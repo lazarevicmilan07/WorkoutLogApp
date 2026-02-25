@@ -1,7 +1,6 @@
 package com.workoutlog.ui.screens.workouttype
 
 import androidx.compose.ui.graphics.Color
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.workoutlog.data.repository.WorkoutTypeRepository
@@ -65,11 +64,8 @@ sealed class AddEditTypeEvent {
 
 @HiltViewModel
 class AddEditWorkoutTypeViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
     private val repository: WorkoutTypeRepository
 ) : ViewModel() {
-
-    private val typeId: Long = savedStateHandle.get<Long>("typeId") ?: -1L
 
     private val _uiState = MutableStateFlow(AddEditTypeUiState())
     val uiState: StateFlow<AddEditTypeUiState> = _uiState.asStateFlow()
@@ -77,11 +73,8 @@ class AddEditWorkoutTypeViewModel @Inject constructor(
     private val _events = MutableSharedFlow<AddEditTypeEvent>()
     val events = _events.asSharedFlow()
 
-    init {
-        loadData()
-    }
-
-    private fun loadData() {
+    fun setup(typeId: Long) {
+        _uiState.value = AddEditTypeUiState(isLoading = true)
         viewModelScope.launch {
             if (typeId > 0) {
                 val entity = repository.getById(typeId)

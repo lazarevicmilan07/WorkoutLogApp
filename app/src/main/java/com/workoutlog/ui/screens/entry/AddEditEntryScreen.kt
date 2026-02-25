@@ -11,23 +11,22 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
@@ -35,17 +34,16 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,7 +58,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.workoutlog.domain.model.toEpochMilli
 import com.workoutlog.ui.components.LoadingIndicator
@@ -68,18 +65,16 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.util.Locale
 
-// Save button — single muted green used for border, text, and icon
 private val SaveGreen = Color(0xFF6B9A6E)
-
-// Delete button — darker, less-saturated red
 private val DeleteRed = Color(0xFFD32F2F)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun AddEditEntryScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: EntryViewModel = hiltViewModel()
+fun AddEditEntrySheet(
+    viewModel: EntryViewModel,
+    onDismiss: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -89,47 +84,53 @@ fun AddEditEntryScreen(
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is EntryEvent.Saved   -> onNavigateBack()
-                is EntryEvent.Deleted -> onNavigateBack()
+                is EntryEvent.Saved   -> onDismiss()
+                is EntryEvent.Deleted -> onDismiss()
                 is EntryEvent.Error   -> snackbarHostState.showSnackbar(event.message)
             }
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text(if (state.isEditing) "Edit Workout" else "Add Workout") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .statusBarsPadding()
+            .imePadding()
+    ) {
+        // Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (state.isEditing) "Edit Workout" else "Add Workout",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f)
             )
-        }
-    ) { padding ->
-        if (state.isLoading) {
-            LoadingIndicator()
-            return@Scaffold
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
-        // Use only the top padding from the scaffold (top bar height).
-        // For the bottom we use stable system nav bar insets directly, so the layout
-        // is not affected by the outer scaffold's animated innerPadding.bottom that
-        // changes as the navigation bar slides in/out during the screen transition.
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = padding.calculateTopPadding())
-                .windowInsetsPadding(WindowInsets.navigationBars)
-        ) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+        if (state.isLoading) {
+            LoadingIndicator()
+        } else {
             // Scrollable form
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Date picker row
@@ -150,7 +151,7 @@ fun AddEditEntryScreen(
                     )
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        text = state.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)),
+                        text = state.date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.getDefault())),
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
@@ -204,7 +205,7 @@ fun AddEditEntryScreen(
                     }
                 }
 
-                // Duration & Calories side by side
+                // Duration & Calories
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -243,94 +244,96 @@ fun AddEditEntryScreen(
                     maxLines = 4,
                     shape = RoundedCornerShape(12.dp)
                 )
-            }
 
-            // Action buttons — pinned at the bottom, stable position
-            val saveEnabled = !state.isSaving && state.selectedTypeId != null
-            val disabledColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.26f)
+                // Action buttons
+                val saveEnabled = !state.isSaving && state.selectedTypeId != null
+                val disabledColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.26f)
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { viewModel.save() },
-                    modifier = Modifier.weight(1f),
-                    enabled = saveEnabled,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = SaveGreen.copy(alpha = 0.1f),
-                        contentColor = SaveGreen,
-                        disabledContainerColor = Color.Transparent,
-                        disabledContentColor = disabledColor
-                    ),
-                    border = BorderStroke(1.5.dp, if (saveEnabled) SaveGreen else disabledColor),
-                    shape = RoundedCornerShape(12.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Save")
-                }
-                if (state.isEditing) {
                     OutlinedButton(
-                        onClick = { showDeleteConfirm = true },
+                        onClick = { viewModel.save() },
                         modifier = Modifier.weight(1f),
+                        enabled = saveEnabled,
                         colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = DeleteRed.copy(alpha = 0.08f),
-                            contentColor = DeleteRed
+                            containerColor = SaveGreen.copy(alpha = 0.1f),
+                            contentColor = SaveGreen,
+                            disabledContainerColor = Color.Transparent,
+                            disabledContentColor = disabledColor
                         ),
-                        border = BorderStroke(1.5.dp, DeleteRed),
+                        border = BorderStroke(1.5.dp, if (saveEnabled) SaveGreen else disabledColor),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Delete")
+                        Text("Save")
+                    }
+                    if (state.isEditing) {
+                        OutlinedButton(
+                            onClick = { showDeleteConfirm = true },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = DeleteRed.copy(alpha = 0.08f),
+                                contentColor = DeleteRed
+                            ),
+                            border = BorderStroke(1.5.dp, DeleteRed),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Delete")
+                        }
                     }
                 }
+
+                Spacer(Modifier.height(8.dp))
             }
         }
 
-        if (showDatePicker) {
-            val datePickerState = rememberDatePickerState(
-                initialSelectedDateMillis = state.date.toEpochMilli()
-            )
-            DatePickerDialog(
-                onDismissRequest = { showDatePicker = false },
-                confirmButton = {
-                    TextButton(onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            val date = Instant.ofEpochMilli(millis)
-                                .atZone(ZoneId.systemDefault())
-                                .toLocalDate()
-                            viewModel.onDateChanged(date)
-                        }
-                        showDatePicker = false
-                    }) { Text("OK") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
-                }
-            ) {
-                DatePicker(state = datePickerState)
-            }
-        }
+        SnackbarHost(snackbarHostState)
+    }
 
-        if (showDeleteConfirm) {
-            AlertDialog(
-                onDismissRequest = { showDeleteConfirm = false },
-                title = { Text("Delete workout?") },
-                text = { Text("This action cannot be undone.") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        viewModel.delete()
-                        showDeleteConfirm = false
-                    }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
-                }
-            )
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = state.date.toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val date = Instant.ofEpochMilli(millis)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDate()
+                        viewModel.onDateChanged(date)
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete workout?") },
+            text = { Text("This action cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.delete()
+                    showDeleteConfirm = false
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            }
+        )
     }
 }

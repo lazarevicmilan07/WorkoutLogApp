@@ -3,13 +3,12 @@ package com.workoutlog.ui.screens.workouttype
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -28,17 +28,21 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -47,21 +51,36 @@ import com.workoutlog.domain.model.WorkoutType
 import com.workoutlog.ui.components.EmptyState
 import com.workoutlog.ui.components.LoadingIndicator
 import com.workoutlog.ui.theme.getWorkoutIcon
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutTypesScreen(
-    onAddType: () -> Unit,
-    onEditType: (Long) -> Unit,
-    viewModel: WorkoutTypesViewModel = hiltViewModel()
+    viewModel: WorkoutTypesViewModel = hiltViewModel(),
+    typeViewModel: AddEditWorkoutTypeViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var typeToDelete by remember { mutableStateOf<WorkoutType?>(null) }
+
+    var showTypeSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+
+    fun openAddSheet() {
+        typeViewModel.setup(-1L)
+        showTypeSheet = true
+    }
+
+    fun openEditSheet(typeId: Long) {
+        typeViewModel.setup(typeId)
+        showTypeSheet = true
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onAddType,
+                onClick = { openAddSheet() },
                 containerColor = Color(0xFF5E9260)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add workout type")
@@ -101,7 +120,7 @@ fun WorkoutTypesScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onEditType(type.id) }
+                        .clickable { openEditSheet(type.id) }
                 ) {
                     Row(
                         modifier = Modifier
@@ -158,16 +177,34 @@ fun WorkoutTypesScreen(
             title = { Text("Delete ${type.name}?") },
             text = { Text("This will also delete all workout entries of this type. This action cannot be undone.") },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteType(type)
-                        typeToDelete = null
-                    }
-                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                TextButton(onClick = {
+                    viewModel.deleteType(type)
+                    typeToDelete = null
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
                 TextButton(onClick = { typeToDelete = null }) { Text("Cancel") }
             }
         )
+    }
+
+    // Add/Edit sheet
+    if (showTypeSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showTypeSheet = false },
+            sheetState = sheetState,
+            dragHandle = null,
+            shape = RoundedCornerShape(0.dp),
+            contentWindowInsets = { WindowInsets(0) }
+        ) {
+            AddEditWorkoutTypeSheet(
+                viewModel = typeViewModel,
+                onDismiss = {
+                    scope.launch { sheetState.hide() }.invokeOnCompletion {
+                        showTypeSheet = false
+                    }
+                }
+            )
+        }
     }
 }

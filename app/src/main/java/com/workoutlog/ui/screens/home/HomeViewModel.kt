@@ -94,6 +94,10 @@ class HomeViewModel @Inject constructor(
         _currentMonth.value = _currentMonth.value.plusMonths(1)
     }
 
+    fun goToMonth(yearMonth: YearMonth) {
+        _currentMonth.value = yearMonth
+    }
+
     fun setFilter(typeId: Long?) {
         _selectedFilter.value = typeId
     }

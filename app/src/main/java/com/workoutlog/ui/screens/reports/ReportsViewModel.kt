@@ -72,6 +72,11 @@ class ReportsViewModel @Inject constructor(
         loadReport()
     }
 
+    fun goToPeriod(year: Int, month: Int) {
+        _uiState.value = _uiState.value.copy(selectedYear = year, selectedMonth = month)
+        loadReport()
+    }
+
     fun setYear(year: Int) {
         _uiState.value = _uiState.value.copy(selectedYear = year)
         loadReport()

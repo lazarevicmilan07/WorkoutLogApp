@@ -1,6 +1,7 @@
 package com.workoutlog.ui.screens.overview
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -266,6 +267,11 @@ fun MonthCalendar(
                                 .padding(1.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(bgColor)
+                                .border(
+                                    width = 0.5.dp,
+                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
                                 .clickable { onDateClick(date) },
                             contentAlignment = Alignment.TopCenter
                         ) {
