@@ -59,6 +59,7 @@ data class AddEditTypeUiState(
 
 sealed class AddEditTypeEvent {
     data object Saved : AddEditTypeEvent()
+    data object Deleted : AddEditTypeEvent()
     data class Error(val message: String) : AddEditTypeEvent()
 }
 
@@ -110,6 +111,15 @@ class AddEditWorkoutTypeViewModel @Inject constructor(
 
     fun onRestDayChanged(isRestDay: Boolean) {
         _uiState.value = _uiState.value.copy(isRestDay = isRestDay)
+    }
+
+    fun delete() {
+        val state = _uiState.value
+        if (!state.isEditing) return
+        viewModelScope.launch {
+            repository.deleteById(state.typeId)
+            _events.emit(AddEditTypeEvent.Deleted)
+        }
     }
 
     fun save() {

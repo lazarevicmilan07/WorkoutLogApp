@@ -9,7 +9,6 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,12 +26,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Hotel
-import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -69,7 +67,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.workoutlog.domain.model.WorkoutEntry
 import com.workoutlog.ui.components.LoadingIndicator
-import com.workoutlog.ui.components.StatCard
 import com.workoutlog.ui.screens.entry.AddEditEntrySheet
 import com.workoutlog.ui.screens.entry.EntryViewModel
 import com.workoutlog.ui.screens.overview.MonthCalendar
@@ -104,6 +101,10 @@ fun HomeScreen(
         entryViewModel.setup(entryId, "")
         showEntrySheet = true
     }
+
+    val dragOffset = remember { Animatable(0f) }
+    val density = LocalDensity.current
+    val screenWidthPx = with(density) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
@@ -144,26 +145,36 @@ fun HomeScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .height(IntrinsicSize.Min),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                StatCard(
-                    label = "This Month",
-                    value = "${state.totalWorkouts}",
-                    icon = Icons.Default.FitnessCenter,
+                val hasEntries = state.totalEntries > 0
+                DashStatCard(
+                    icon = {
+                        Icon(
+                            Icons.Default.FitnessCenter,
+                            contentDescription = null,
+                            tint = Color(0xFF4CAF6A),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    accentColor = Color(0xFF4CAF6A),
+                    label = "Workouts",
+                    value = if (hasEntries) "${state.workoutCount} / ${state.totalEntries}" else "—",
                     modifier = Modifier.weight(1f)
                 )
-                StatCard(
-                    label = "Rest Days",
-                    value = "${state.restDaysCount}",
-                    icon = Icons.Default.Hotel,
-                    modifier = Modifier.weight(1f)
-                )
-                StatCard(
-                    label = "Streak",
-                    value = "${state.currentStreak} days",
-                    icon = Icons.Default.LocalFireDepartment,
+                DashStatCard(
+                    icon = {
+                        Icon(
+                            Icons.Default.BarChart,
+                            contentDescription = null,
+                            tint = Color(0xFF5B8DEE),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    accentColor = Color(0xFF5B8DEE),
+                    label = "Active Rate",
+                    value = if (hasEntries) "${state.workoutPercentage}%" else "—",
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -189,12 +200,6 @@ fun HomeScreen(
                 }
             }
 
-            // Month / calendar area with Animatable swipe
-            val dragOffset = remember { Animatable(0f) }
-            val density = LocalDensity.current
-            val screenWidthPx = with(density) {
-                LocalConfiguration.current.screenWidthDp.dp.toPx()
-            }
 
             Column(
                 modifier = Modifier
@@ -301,7 +306,18 @@ fun HomeScreen(
             currentMonth = state.currentMonth,
             onDismiss = { showMonthPicker = false },
             onConfirm = { yearMonth ->
-                viewModel.goToMonth(yearMonth)
+                if (yearMonth != state.currentMonth) {
+                    val goingBack = yearMonth < state.currentMonth
+                    scope.launch {
+                        dragOffset.animateTo(
+                            if (goingBack) screenWidthPx else -screenWidthPx,
+                            tween(150)
+                        )
+                        viewModel.goToMonth(yearMonth)
+                        dragOffset.snapTo(if (goingBack) -screenWidthPx else screenWidthPx)
+                        dragOffset.animateTo(0f, tween(200))
+                    }
+                }
                 showMonthPicker = false
             }
         )
@@ -550,5 +566,46 @@ fun WorkoutEntryItem(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
             )
         }
+    }
+}
+
+@Composable
+private fun DashStatCard(
+    icon: @Composable () -> Unit,
+    accentColor: Color,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(accentColor.copy(alpha = 0.1f))
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(accentColor.copy(alpha = 0.22f)),
+                contentAlignment = Alignment.Center
+            ) {
+                icon()
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = accentColor
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }

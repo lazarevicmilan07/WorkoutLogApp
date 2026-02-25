@@ -20,18 +20,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -47,7 +43,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.workoutlog.domain.model.WorkoutType
 import com.workoutlog.ui.components.EmptyState
 import com.workoutlog.ui.components.LoadingIndicator
 import com.workoutlog.ui.theme.getWorkoutIcon
@@ -60,7 +55,6 @@ fun WorkoutTypesScreen(
     typeViewModel: AddEditWorkoutTypeViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var typeToDelete by remember { mutableStateOf<WorkoutType?>(null) }
 
     var showTypeSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -149,17 +143,6 @@ fun WorkoutTypesScreen(
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.weight(1f)
                         )
-                        IconButton(
-                            onClick = { typeToDelete = type },
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
                     }
                     HorizontalDivider(
                         modifier = Modifier.padding(start = 60.dp),
@@ -168,24 +151,6 @@ fun WorkoutTypesScreen(
                 }
             }
         }
-    }
-
-    // Delete confirmation dialog
-    typeToDelete?.let { type ->
-        AlertDialog(
-            onDismissRequest = { typeToDelete = null },
-            title = { Text("Delete ${type.name}?") },
-            text = { Text("This will also delete all workout entries of this type. This action cannot be undone.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.deleteType(type)
-                    typeToDelete = null
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = {
-                TextButton(onClick = { typeToDelete = null }) { Text("Cancel") }
-            }
-        )
     }
 
     // Add/Edit sheet

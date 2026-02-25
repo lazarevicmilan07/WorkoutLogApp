@@ -1,6 +1,5 @@
 package com.workoutlog.ui.screens.entry
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,17 +7,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,10 +26,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -38,8 +42,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -57,18 +61,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.workoutlog.domain.model.toEpochMilli
 import com.workoutlog.ui.components.LoadingIndicator
+import com.workoutlog.ui.theme.getWorkoutIcon
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import java.util.Locale
 
-private val SaveGreen = Color(0xFF6B9A6E)
-private val DeleteRed = Color(0xFFD32F2F)
+private val SaveGreen = Color(0xFF4CAF6A)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -91,6 +97,8 @@ fun AddEditEntrySheet(
         }
     }
 
+    val saveEnabled = !state.isSaving && state.selectedTypeId != null
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -98,19 +106,13 @@ fun AddEditEntrySheet(
             .statusBarsPadding()
             .imePadding()
     ) {
-        // Header
+        // ── Header ────────────────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 4.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = if (state.isEditing) "Edit Workout" else "Add Workout",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f)
-            )
             IconButton(onClick = onDismiss) {
                 Icon(
                     Icons.Default.Close,
@@ -118,183 +120,266 @@ fun AddEditEntrySheet(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Text(
+                text = if (state.isEditing) "Edit Workout" else "Log Workout",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.width(48.dp))
         }
 
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
         if (state.isLoading) {
             LoadingIndicator()
         } else {
-            // Scrollable form
+            // ── Scrollable form ───────────────────────────────────────────
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Date picker row
+
+                // ── Date row ──────────────────────────────────────────────
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .clickable { showDatePicker = true }
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = state.date.format(DateTimeFormatter.ofPattern("EEEE", Locale.getDefault())),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = state.date.format(DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.getDefault())),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     Icon(
-                        Icons.Default.CalendarToday,
+                        Icons.Default.ChevronRight,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        text = state.date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.getDefault())),
-                        style = MaterialTheme.typography.bodyLarge
                     )
                 }
 
-                // Workout type selector
-                Column {
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                )
+
+                // ── Workout type selector ─────────────────────────────────
+                Column(modifier = Modifier.padding(top = 20.dp)) {
                     Text(
                         text = "Workout Type",
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp)
                     )
-                    Spacer(Modifier.height(6.dp))
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        state.workoutTypes.forEach { type ->
-                            val isSelected = state.selectedTypeId == type.id
-                            Row(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(50))
-                                    .background(
-                                        if (isSelected) type.color.copy(alpha = 0.13f)
-                                        else MaterialTheme.colorScheme.surfaceVariant
-                                    )
-                                    .border(
-                                        width = if (isSelected) 1.dp else 0.dp,
-                                        color = if (isSelected) type.color else Color.Transparent,
-                                        shape = RoundedCornerShape(50)
-                                    )
-                                    .clickable { viewModel.onTypeSelected(type.id) }
-                                    .padding(horizontal = 14.dp, vertical = 9.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(7.dp)
-                            ) {
-                                Box(
+                    Spacer(Modifier.height(12.dp))
+
+                    if (state.workoutTypes.isEmpty()) {
+                        Text(
+                            text = "No workout types yet — add some in Types tab",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
+                    } else {
+                        FlowRow(
+                            modifier = Modifier.padding(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            state.workoutTypes.forEach { type ->
+                                val isSelected = state.selectedTypeId == type.id
+                                Column(
                                     modifier = Modifier
-                                        .size(9.dp)
-                                        .clip(CircleShape)
-                                        .background(type.color)
-                                )
-                                Text(
-                                    text = type.name,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (isSelected) type.color
-                                            else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                        .width(60.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            if (isSelected) type.color.copy(alpha = 0.12f)
+                                            else Color.Transparent
+                                        )
+                                        .border(
+                                            width = if (isSelected) 1.5.dp else 1.dp,
+                                            color = if (isSelected) type.color
+                                                    else MaterialTheme.colorScheme.outlineVariant,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        .clickable { viewModel.onTypeSelected(type.id) }
+                                        .padding(vertical = 8.dp, horizontal = 4.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (isSelected) type.color.copy(alpha = 0.2f)
+                                                else type.color.copy(alpha = 0.12f)
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = getWorkoutIcon(type.icon),
+                                            contentDescription = null,
+                                            tint = type.color,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                    Text(
+                                        text = type.name,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 9.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelected) type.color
+                                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                         }
                     }
                 }
 
-                // Duration & Calories
+                // ── Duration & Calories ───────────────────────────────────
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedTextField(
+                    // Duration card
+                    StatInputCard(
+                        icon = { Icon(Icons.Default.Timer, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
+                        iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        label = "Duration",
+                        unit = "min",
                         value = state.durationMinutes,
                         onValueChange = viewModel::onDurationChanged,
-                        modifier = Modifier.weight(1f),
-                        label = { Text("Duration (min)") },
-                        placeholder = { Text("45") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
+                    // Calories card
+                    StatInputCard(
+                        icon = { Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = Color(0xFFFF6B35), modifier = Modifier.size(18.dp)) },
+                        iconBg = Color(0xFFFF6B35).copy(alpha = 0.12f),
+                        label = "Calories",
+                        unit = "kcal",
                         value = state.caloriesBurned,
                         onValueChange = viewModel::onCaloriesChanged,
-                        modifier = Modifier.weight(1f),
-                        label = { Text("Calories") },
-                        placeholder = { Text("300") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        modifier = Modifier.weight(1f)
                     )
                 }
 
-                // Note
-                OutlinedTextField(
-                    value = state.note,
-                    onValueChange = viewModel::onNoteChanged,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp),
-                    label = { Text("Note") },
-                    placeholder = { Text("How was your workout?") },
-                    maxLines = 4,
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                // Action buttons
-                val saveEnabled = !state.isSaving && state.selectedTypeId != null
-                val disabledColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.26f)
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = { viewModel.save() },
-                        modifier = Modifier.weight(1f),
-                        enabled = saveEnabled,
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = SaveGreen.copy(alpha = 0.1f),
-                            contentColor = SaveGreen,
-                            disabledContainerColor = Color.Transparent,
-                            disabledContentColor = disabledColor
-                        ),
-                        border = BorderStroke(1.5.dp, if (saveEnabled) SaveGreen else disabledColor),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Save")
-                    }
-                    if (state.isEditing) {
-                        OutlinedButton(
-                            onClick = { showDeleteConfirm = true },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = DeleteRed.copy(alpha = 0.08f),
-                                contentColor = DeleteRed
-                            ),
-                            border = BorderStroke(1.5.dp, DeleteRed),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Delete")
-                        }
-                    }
+                // ── Note ──────────────────────────────────────────────────
+                Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    Text(
+                        text = "Note",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = state.note,
+                        onValueChange = viewModel::onNoteChanged,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(96.dp),
+                        placeholder = {
+                            Text(
+                                "How was your workout?",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        },
+                        maxLines = 4,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                        )
+                    )
                 }
 
                 Spacer(Modifier.height(8.dp))
+            }
+
+            // ── Bottom buttons ────────────────────────────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                if (state.isEditing) {
+                    Button(
+                        onClick = { showDeleteConfirm = true },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFD32F2F),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Delete", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    }
+                }
+                Button(
+                    onClick = { viewModel.save() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                    enabled = saveEnabled,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SaveGreen,
+                        contentColor = Color.White,
+                        disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                        disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    )
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Save", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                }
             }
         }
 
         SnackbarHost(snackbarHostState)
     }
 
+    // ── Date picker dialog ────────────────────────────────────────────────
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = state.date.toEpochMilli()
@@ -320,6 +405,7 @@ fun AddEditEntrySheet(
         }
     }
 
+    // ── Delete confirm dialog ─────────────────────────────────────────────
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
@@ -335,5 +421,72 @@ fun AddEditEntrySheet(
                 TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
             }
         )
+    }
+}
+
+@Composable
+private fun StatInputCard(
+    icon: @Composable () -> Unit,
+    iconBg: Color,
+    label: String,
+    unit: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(iconBg),
+                contentAlignment = Alignment.Center
+            ) {
+                icon()
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.Bottom) {
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.weight(1f),
+                textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                placeholder = {
+                    Text(
+                        "—",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    )
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent
+                )
+            )
+            Text(
+                text = unit,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 14.dp)
+            )
+        }
     }
 }

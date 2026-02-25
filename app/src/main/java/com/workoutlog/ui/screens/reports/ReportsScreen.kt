@@ -244,7 +244,20 @@ fun ReportsScreen(
                 currentMonth = state.selectedMonth,
                 onDismiss = { showPeriodPicker = false },
                 onConfirm = { year, month ->
-                    viewModel.goToPeriod(year, month)
+                    val currentYm = YearMonth.of(state.selectedYear, state.selectedMonth)
+                    val targetYm = YearMonth.of(year, month)
+                    if (targetYm != currentYm) {
+                        val goingBack = targetYm < currentYm
+                        scope.launch {
+                            dragOffset.animateTo(
+                                if (goingBack) screenWidthPx else -screenWidthPx,
+                                tween(150)
+                            )
+                            viewModel.goToPeriod(year, month)
+                            dragOffset.snapTo(if (goingBack) -screenWidthPx else screenWidthPx)
+                            dragOffset.animateTo(0f, tween(200))
+                        }
+                    }
                     showPeriodPicker = false
                 }
             )
@@ -253,7 +266,18 @@ fun ReportsScreen(
                 currentYear = state.selectedYear,
                 onDismiss = { showPeriodPicker = false },
                 onConfirm = { year ->
-                    viewModel.setYear(year)
+                    if (year != state.selectedYear) {
+                        val goingBack = year < state.selectedYear
+                        scope.launch {
+                            dragOffset.animateTo(
+                                if (goingBack) screenWidthPx else -screenWidthPx,
+                                tween(150)
+                            )
+                            viewModel.setYear(year)
+                            dragOffset.snapTo(if (goingBack) -screenWidthPx else screenWidthPx)
+                            dragOffset.animateTo(0f, tween(200))
+                        }
+                    }
                     showPeriodPicker = false
                 }
             )

@@ -11,12 +11,14 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +26,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,16 +39,21 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.workoutlog.ui.components.LoadingIndicator
 import com.workoutlog.ui.theme.WorkoutColors
@@ -56,48 +67,34 @@ fun AddEditWorkoutTypeSheet(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is AddEditTypeEvent.Saved -> onDismiss()
-                is AddEditTypeEvent.Error -> snackbarHostState.showSnackbar(event.message)
+                is AddEditTypeEvent.Saved   -> onDismiss()
+                is AddEditTypeEvent.Deleted -> onDismiss()
+                is AddEditTypeEvent.Error   -> snackbarHostState.showSnackbar(event.message)
             }
         }
     }
+
+    val saveEnabled = !state.isSaving && state.name.isNotBlank()
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight()
             .statusBarsPadding()
+            .imePadding()
     ) {
         // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 4.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = if (state.isEditing) "Edit Type" else "Add Type",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(
-                onClick = { viewModel.save() },
-                enabled = !state.isSaving && state.name.isNotBlank()
-            ) {
-                Icon(
-                    Icons.Default.Check,
-                    contentDescription = "Save",
-                    tint = if (!state.isSaving && state.name.isNotBlank())
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.26f)
-                )
-            }
             IconButton(onClick = onDismiss) {
                 Icon(
                     Icons.Default.Close,
@@ -105,6 +102,14 @@ fun AddEditWorkoutTypeSheet(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Text(
+                text = if (state.isEditing) "Edit Type" else "Add Type",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.width(48.dp))
         }
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -247,8 +252,70 @@ fun AddEditWorkoutTypeSheet(
 
                 Spacer(Modifier.height(8.dp))
             }
+
+            // ── Bottom buttons ────────────────────────────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                if (state.isEditing) {
+                    Button(
+                        onClick = { showDeleteConfirm = true },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFD32F2F),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Delete", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    }
+                }
+                Button(
+                    onClick = { viewModel.save() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                    enabled = saveEnabled,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4CAF6A),
+                        contentColor = Color.White,
+                        disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                        disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    )
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Save", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                }
+            }
         }
 
         SnackbarHost(snackbarHostState)
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete ${state.name}?") },
+            text = { Text("This will also delete all workout entries of this type. This action cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.delete()
+                    showDeleteConfirm = false
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            }
+        )
     }
 }

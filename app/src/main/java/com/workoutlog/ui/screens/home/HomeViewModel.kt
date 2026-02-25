@@ -27,9 +27,9 @@ data class HomeUiState(
     val workoutTypes: List<WorkoutType> = emptyList(),
     val entries: List<WorkoutEntry> = emptyList(),
     val entriesByDate: Map<LocalDate, List<WorkoutEntry>> = emptyMap(),
-    val totalWorkouts: Int = 0,
-    val restDaysCount: Int = 0,
-    val currentStreak: Int = 0,
+    val workoutCount: Int = 0,
+    val totalEntries: Int = 0,
+    val workoutPercentage: Int = 0,
     val selectedFilter: Long? = null
 )
 
@@ -63,15 +63,9 @@ class HomeViewModel @Inject constructor(
 
         val entriesByDate = filteredEntries.groupBy { it.date }
 
-        // Rest days count: entries where the workout type has isRestDay = true
-        val restDaysCount = allEntries
-            .filter { it.workoutType?.isRestDay == true }
-            .map { it.date }
-            .distinct()
-            .size
-
-        // This Month count excludes rest day entries
-        val nonRestWorkouts = allEntries.count { it.workoutType?.isRestDay != true }
+        val workoutCount = allEntries.count { it.workoutType?.isRestDay != true }
+        val totalEntries = allEntries.size
+        val workoutPercentage = if (totalEntries > 0) workoutCount * 100 / totalEntries else 0
 
         HomeUiState(
             isLoading = false,
@@ -79,9 +73,9 @@ class HomeViewModel @Inject constructor(
             workoutTypes = types,
             entries = allEntries,
             entriesByDate = entriesByDate,
-            totalWorkouts = nonRestWorkouts,
-            restDaysCount = restDaysCount,
-            currentStreak = calculateStreak(allEntries),
+            workoutCount = workoutCount,
+            totalEntries = totalEntries,
+            workoutPercentage = workoutPercentage,
             selectedFilter = filter
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
@@ -108,22 +102,4 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun calculateStreak(entries: List<WorkoutEntry>): Int {
-        if (entries.isEmpty()) return 0
-        val nonRestEntries = entries.filter { it.workoutType?.isRestDay != true }
-        if (nonRestEntries.isEmpty()) return 0
-        val dates = nonRestEntries.map { it.date }.distinct().sorted().reversed()
-        var streak = 0
-        var expectedDate = LocalDate.now()
-
-        for (date in dates) {
-            if (date == expectedDate || date == expectedDate.minusDays(1)) {
-                streak++
-                expectedDate = date.minusDays(1)
-            } else {
-                break
-            }
-        }
-        return streak
-    }
 }
