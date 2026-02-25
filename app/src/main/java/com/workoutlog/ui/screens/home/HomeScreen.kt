@@ -31,7 +31,6 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -44,7 +43,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -67,6 +65,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.workoutlog.domain.model.WorkoutEntry
 import com.workoutlog.ui.components.LoadingIndicator
+import com.workoutlog.ui.components.MonthYearPickerDialog
 import com.workoutlog.ui.screens.entry.AddEditEntrySheet
 import com.workoutlog.ui.screens.entry.EntryViewModel
 import com.workoutlog.ui.screens.overview.MonthCalendar
@@ -342,118 +341,6 @@ fun HomeScreen(
             )
         }
     }
-}
-
-@Composable
-fun MonthYearPickerDialog(
-    currentMonth: YearMonth,
-    onDismiss: () -> Unit,
-    onConfirm: (YearMonth) -> Unit
-) {
-    var step by remember { mutableStateOf(0) }
-    var selectedMonth by remember { mutableStateOf(currentMonth.monthValue) }
-    var selectedYear by remember { mutableStateOf(currentMonth.year) }
-
-    val monthLabels = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-    val currentYear = YearMonth.now().year
-    val years = ((currentYear - 5)..(currentYear + 2)).toList()
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = if (step == 0) "Select Month" else "Select Year",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-        },
-        text = {
-            if (step == 0) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    monthLabels.chunked(4).forEachIndexed { rowIndex, rowMonths ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            rowMonths.forEachIndexed { colIndex, monthLabel ->
-                                val monthNum = rowIndex * 4 + colIndex + 1
-                                val isSelected = selectedMonth == monthNum
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(
-                                            if (isSelected) MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.surfaceVariant
-                                        )
-                                        .clickable { selectedMonth = monthNum; step = 1 }
-                                        .padding(vertical = 10.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = monthLabel,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                                else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    years.chunked(4).forEach { rowYears ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            rowYears.forEach { year ->
-                                val isSelected = selectedYear == year
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(
-                                            if (isSelected) MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.surfaceVariant
-                                        )
-                                        .clickable { selectedYear = year }
-                                        .padding(vertical = 10.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "$year",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                                else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                            repeat(4 - rowYears.size) { Spacer(modifier = Modifier.weight(1f)) }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            if (step == 1) {
-                TextButton(
-                    onClick = { onConfirm(YearMonth.of(selectedYear, selectedMonth)) }
-                ) { Text("OK") }
-            }
-        },
-        dismissButton = {
-            if (step == 1) {
-                TextButton(onClick = { step = 0 }) { Text("Back") }
-            } else {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-            }
-        }
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

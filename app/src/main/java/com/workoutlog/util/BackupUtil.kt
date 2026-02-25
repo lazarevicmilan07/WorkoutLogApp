@@ -1,11 +1,7 @@
 package com.workoutlog.util
 
-import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
-import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
 import com.workoutlog.data.local.entity.WorkoutEntryEntity
 import com.workoutlog.data.local.entity.WorkoutTypeEntity
 import com.workoutlog.data.repository.WorkoutEntryRepository
@@ -25,9 +21,10 @@ object BackupUtil {
 
     fun createBackup(
         context: Context,
+        uri: Uri,
         types: List<WorkoutTypeEntity>,
         entries: List<WorkoutEntryEntity>
-    ): Uri? {
+    ) {
         val backupData = BackupData(
             workoutTypes = types.map { type ->
                 BackupWorkoutType(
@@ -51,24 +48,9 @@ object BackupUtil {
         )
 
         val jsonString = json.encodeToString(BackupData.serializer(), backupData)
-        val fileName = "WorkoutLog_Backup_${System.currentTimeMillis()}.json"
-
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-            put(MediaStore.Downloads.MIME_TYPE, "application/json")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/WorkoutLog")
-            }
+        context.contentResolver.openOutputStream(uri)?.use { os ->
+            os.write(jsonString.toByteArray())
         }
-
-        val resolver = context.contentResolver
-        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-        uri?.let {
-            resolver.openOutputStream(it)?.use { os ->
-                os.write(jsonString.toByteArray())
-            }
-        }
-        return uri
     }
 
     fun readBackup(context: Context, uri: Uri): BackupData? {

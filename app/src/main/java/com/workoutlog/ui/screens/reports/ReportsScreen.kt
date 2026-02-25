@@ -21,24 +21,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.TableChart
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -69,6 +61,8 @@ import com.workoutlog.domain.model.MonthlyCountData
 import com.workoutlog.domain.model.WorkoutTypeCountData
 import com.workoutlog.ui.components.EmptyState
 import com.workoutlog.ui.components.LoadingIndicator
+import com.workoutlog.ui.components.MonthYearPickerDialog
+import com.workoutlog.ui.components.YearPickerDialog
 import kotlinx.coroutines.launch
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -80,7 +74,6 @@ fun ReportsScreen(
     viewModel: ReportsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
     var showPeriodPicker by remember { mutableStateOf(false) }
 
     // Set mode once on first composition
@@ -91,15 +84,6 @@ fun ReportsScreen(
     LifecycleResumeEffect(Unit) {
         viewModel.refresh()
         onPauseOrDispose { }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.events.collect { event ->
-            when (event) {
-                is ReportsEvent.ExportSuccess -> snackbarHostState.showSnackbar(event.message)
-                is ReportsEvent.ExportError -> snackbarHostState.showSnackbar(event.message)
-            }
-        }
     }
 
     // Swipe animation for period changes
@@ -128,9 +112,7 @@ fun ReportsScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
+    Scaffold { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -160,30 +142,6 @@ fun ReportsScreen(
                 )
                 IconButton(onClick = { animateNext() }) {
                     Icon(Icons.Default.ChevronRight, contentDescription = "Next")
-                }
-            }
-
-            // Export buttons
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (state.isExporting) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                } else {
-                    TextButton(onClick = { viewModel.exportToExcel() }) {
-                        Icon(Icons.Default.TableChart, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Excel")
-                    }
-                    TextButton(onClick = { viewModel.exportToPdf() }) {
-                        Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("PDF")
-                    }
                 }
             }
 
@@ -239,21 +197,19 @@ fun ReportsScreen(
     // Period picker dialog
     if (showPeriodPicker) {
         if (state.isMonthly) {
-            MonthYearPickerDialogForStats(
-                currentYear = state.selectedYear,
-                currentMonth = state.selectedMonth,
+            MonthYearPickerDialog(
+                currentMonth = YearMonth.of(state.selectedYear, state.selectedMonth),
                 onDismiss = { showPeriodPicker = false },
-                onConfirm = { year, month ->
+                onConfirm = { yearMonth ->
                     val currentYm = YearMonth.of(state.selectedYear, state.selectedMonth)
-                    val targetYm = YearMonth.of(year, month)
-                    if (targetYm != currentYm) {
-                        val goingBack = targetYm < currentYm
+                    if (yearMonth != currentYm) {
+                        val goingBack = yearMonth < currentYm
                         scope.launch {
                             dragOffset.animateTo(
                                 if (goingBack) screenWidthPx else -screenWidthPx,
                                 tween(150)
                             )
-                            viewModel.goToPeriod(year, month)
+                            viewModel.goToPeriod(yearMonth.year, yearMonth.monthValue)
                             dragOffset.snapTo(if (goingBack) -screenWidthPx else screenWidthPx)
                             dragOffset.animateTo(0f, tween(200))
                         }
@@ -283,180 +239,6 @@ fun ReportsScreen(
             )
         }
     }
-}
-
-@Composable
-private fun MonthYearPickerDialogForStats(
-    currentYear: Int,
-    currentMonth: Int,
-    onDismiss: () -> Unit,
-    onConfirm: (Int, Int) -> Unit
-) {
-    var step by remember { mutableStateOf(0) }
-    var selectedMonth by remember { mutableStateOf(currentMonth) }
-    var selectedYear by remember { mutableStateOf(currentYear) }
-
-    val monthLabels = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-    val baseYear = YearMonth.now().year
-    val years = ((baseYear - 5)..(baseYear + 2)).toList()
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = if (step == 0) "Select Month" else "Select Year",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-        },
-        text = {
-            if (step == 0) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    monthLabels.chunked(4).forEachIndexed { rowIndex, rowMonths ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            rowMonths.forEachIndexed { colIndex, label ->
-                                val monthNum = rowIndex * 4 + colIndex + 1
-                                val isSelected = selectedMonth == monthNum
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(
-                                            if (isSelected) MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.surfaceVariant
-                                        )
-                                        .clickable { selectedMonth = monthNum; step = 1 }
-                                        .padding(vertical = 10.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = label,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                                else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    years.chunked(4).forEach { rowYears ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            rowYears.forEach { year ->
-                                val isSelected = selectedYear == year
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(
-                                            if (isSelected) MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.surfaceVariant
-                                        )
-                                        .clickable { selectedYear = year }
-                                        .padding(vertical = 10.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "$year",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                                else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                            repeat(4 - rowYears.size) { Spacer(modifier = Modifier.weight(1f)) }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            if (step == 1) {
-                TextButton(onClick = { onConfirm(selectedYear, selectedMonth) }) { Text("OK") }
-            }
-        },
-        dismissButton = {
-            if (step == 1) {
-                TextButton(onClick = { step = 0 }) { Text("Back") }
-            } else {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-            }
-        }
-    )
-}
-
-@Composable
-private fun YearPickerDialog(
-    currentYear: Int,
-    onDismiss: () -> Unit,
-    onConfirm: (Int) -> Unit
-) {
-    var selectedYear by remember { mutableStateOf(currentYear) }
-    val baseYear = YearMonth.now().year
-    val years = ((baseYear - 5)..(baseYear + 2)).toList()
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Select Year",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                years.chunked(4).forEach { rowYears ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        rowYears.forEach { year ->
-                            val isSelected = selectedYear == year
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(
-                                        if (isSelected) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.surfaceVariant
-                                    )
-                                    .clickable { selectedYear = year }
-                                    .padding(vertical = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "$year",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                            else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        repeat(4 - rowYears.size) { Spacer(modifier = Modifier.weight(1f)) }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(selectedYear) }) { Text("OK") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
 }
 
 @Composable

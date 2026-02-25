@@ -1,6 +1,5 @@
 package com.workoutlog.ui.screens.reports
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.workoutlog.data.repository.WorkoutEntryRepository
@@ -13,13 +12,9 @@ import com.workoutlog.domain.model.WorkoutTypeCountData
 import com.workoutlog.domain.model.YearlyReport
 import com.workoutlog.domain.model.toDomain
 import com.workoutlog.domain.model.toEpochMilli
-import com.workoutlog.util.ExportUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -32,27 +27,17 @@ data class ReportsUiState(
     val selectedYear: Int = LocalDate.now().year,
     val selectedMonth: Int = LocalDate.now().monthValue,
     val monthlyReport: MonthlyReport? = null,
-    val yearlyReport: YearlyReport? = null,
-    val isExporting: Boolean = false
+    val yearlyReport: YearlyReport? = null
 )
-
-sealed class ReportsEvent {
-    data class ExportSuccess(val message: String) : ReportsEvent()
-    data class ExportError(val message: String) : ReportsEvent()
-}
 
 @HiltViewModel
 class ReportsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val entryRepository: WorkoutEntryRepository,
     private val typeRepository: WorkoutTypeRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReportsUiState())
     val uiState: StateFlow<ReportsUiState> = _uiState.asStateFlow()
-
-    private val _events = MutableSharedFlow<ReportsEvent>()
-    val events = _events.asSharedFlow()
 
     init {
         loadReport()
@@ -198,53 +183,5 @@ class ReportsViewModel @Inject constructor(
             isLoading = false,
             yearlyReport = report
         )
-    }
-
-    fun exportToExcel() {
-        _uiState.value = _uiState.value.copy(isExporting = true)
-        viewModelScope.launch {
-            try {
-                val state = _uiState.value
-                val uri = if (state.isMonthly && state.monthlyReport != null) {
-                    ExportUtil.exportMonthlyToExcel(context, state.monthlyReport)
-                } else if (!state.isMonthly && state.yearlyReport != null) {
-                    ExportUtil.exportYearlyToExcel(context, state.yearlyReport)
-                } else null
-
-                if (uri != null) {
-                    _events.emit(ReportsEvent.ExportSuccess("Excel exported successfully"))
-                } else {
-                    _events.emit(ReportsEvent.ExportError("No data to export"))
-                }
-            } catch (e: Exception) {
-                _events.emit(ReportsEvent.ExportError("Export failed: ${e.message}"))
-            } finally {
-                _uiState.value = _uiState.value.copy(isExporting = false)
-            }
-        }
-    }
-
-    fun exportToPdf() {
-        _uiState.value = _uiState.value.copy(isExporting = true)
-        viewModelScope.launch {
-            try {
-                val state = _uiState.value
-                val uri = if (state.isMonthly && state.monthlyReport != null) {
-                    ExportUtil.exportMonthlyToPdf(context, state.monthlyReport)
-                } else if (!state.isMonthly && state.yearlyReport != null) {
-                    ExportUtil.exportYearlyToPdf(context, state.yearlyReport)
-                } else null
-
-                if (uri != null) {
-                    _events.emit(ReportsEvent.ExportSuccess("PDF exported successfully"))
-                } else {
-                    _events.emit(ReportsEvent.ExportError("No data to export"))
-                }
-            } catch (e: Exception) {
-                _events.emit(ReportsEvent.ExportError("Export failed: ${e.message}"))
-            } finally {
-                _uiState.value = _uiState.value.copy(isExporting = false)
-            }
-        }
     }
 }
