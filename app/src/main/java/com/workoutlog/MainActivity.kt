@@ -5,8 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -18,10 +18,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -77,12 +79,28 @@ fun MainContent(startDestination: String) {
     val bottomBarRoutes = bottomNavItems.map { it.screen.route }
     val showBottomBar = currentRoute in bottomBarRoutes
 
+    // navBarVisible drives AnimatedVisibility:
+    //  • Hide immediately (ExitTransition.None) so innerPadding.bottom snaps to 0
+    //    before the new screen starts sliding in — prevents buttons jumping on open.
+    //  • Show only after a 300 ms delay (matching the screen exit animation) so the
+    //    nav bar doesn't reclaim layout space while AddEditEntry is still sliding out
+    //    — prevents buttons jumping on close.
+    var navBarVisible by remember { mutableStateOf(showBottomBar) }
+    LaunchedEffect(showBottomBar) {
+        if (showBottomBar) {
+            delay(300L)
+            navBarVisible = true
+        } else {
+            navBarVisible = false
+        }
+    }
+
     Scaffold(
         bottomBar = {
             AnimatedVisibility(
-                visible = showBottomBar,
+                visible = navBarVisible,
                 enter = slideInVertically(initialOffsetY = { it }),
-                exit = slideOutVertically(targetOffsetY = { it })
+                exit = ExitTransition.None
             ) {
                 NavigationBar {
                     bottomNavItems.forEach { item ->

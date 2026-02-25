@@ -22,7 +22,10 @@
       "Bash(cmd /c \"set \"JAVA_HOME=C:Program FilesAndroidAndroid Studiojbr\" && gradlew.bat assembleDebug 2>&1\")",
       "Bash(export JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\")",
       "Bash(/c/ComData/Projekti/WorkoutLog/gradlew:*)",
-      "Bash(./gradlew assembleDebug:*)"
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(npm update:*)",
+      "Bash(grep -r \"material.icons\" /c/ComData/Projekti/WorkoutLog/app/build.gradle* 2>/dev/null || grep -r \"material.icons\" /c/ComData/Projekti/WorkoutLog/app/build.gradle.kts 2>/dev/null || find /c/ComData/Projekti/WorkoutLog -name \"*.gradle*\" | xargs grep -l \"material\" 2>/dev/null)",
+      "Bash(tail:*)"
     ]
   }
 }

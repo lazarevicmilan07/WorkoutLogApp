@@ -34,6 +34,7 @@ data class EntryUiState(
 
 sealed class EntryEvent {
     data object Saved : EntryEvent()
+    data object Deleted : EntryEvent()
     data class Error(val message: String) : EntryEvent()
 }
 
@@ -112,6 +113,15 @@ class EntryViewModel @Inject constructor(
     fun onCaloriesChanged(calories: String) {
         if (calories.isEmpty() || calories.all { it.isDigit() }) {
             _uiState.value = _uiState.value.copy(caloriesBurned = calories)
+        }
+    }
+
+    fun delete() {
+        val state = _uiState.value
+        if (!state.isEditing) return
+        viewModelScope.launch {
+            entryRepository.deleteById(state.entryId)
+            _events.emit(EntryEvent.Deleted)
         }
     }
 
