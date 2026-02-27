@@ -91,6 +91,7 @@ fun HomeScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
+
     fun openAddSheet(date: String?) {
         entryViewModel.setup(-1L, date ?: "")
         showEntrySheet = true
@@ -341,6 +342,7 @@ fun HomeScreen(
             )
         }
     }
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

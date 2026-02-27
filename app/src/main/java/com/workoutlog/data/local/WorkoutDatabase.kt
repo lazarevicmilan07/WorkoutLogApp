@@ -14,7 +14,7 @@ import com.workoutlog.data.local.entity.WorkoutTypeEntity
         WorkoutTypeEntity::class,
         WorkoutEntryEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class WorkoutDatabase : RoomDatabase() {
@@ -28,6 +28,35 @@ abstract class WorkoutDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE workout_types ADD COLUMN isRestDay INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("UPDATE workout_types SET isRestDay = 1 WHERE LOWER(name) = 'rest day'")
+            }
+        }
+
+        // Adds unique constraint on date — recreates table, keeping latest entry per date
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE workout_entries_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        date INTEGER NOT NULL,
+                        workoutTypeId INTEGER NOT NULL,
+                        note TEXT,
+                        durationMinutes INTEGER,
+                        caloriesBurned INTEGER,
+                        createdAt INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY (workoutTypeId) REFERENCES workout_types(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO workout_entries_new (id, date, workoutTypeId, note, durationMinutes, caloriesBurned, createdAt)
+                    SELECT id, date, workoutTypeId, note, durationMinutes, caloriesBurned, createdAt
+                    FROM workout_entries
+                    WHERE id IN (SELECT MAX(id) FROM workout_entries GROUP BY date)
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX index_workout_entries_date ON workout_entries_new (date)")
+                db.execSQL("CREATE INDEX index_workout_entries_workoutTypeId ON workout_entries_new (workoutTypeId)")
+                db.execSQL("CREATE INDEX index_workout_entries_date_workoutTypeId ON workout_entries_new (date, workoutTypeId)")
+                db.execSQL("DROP TABLE workout_entries")
+                db.execSQL("ALTER TABLE workout_entries_new RENAME TO workout_entries")
             }
         }
     }

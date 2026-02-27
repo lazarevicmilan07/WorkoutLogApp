@@ -18,6 +18,8 @@ class WorkoutEntryRepository @Inject constructor(
 
     suspend fun getById(id: Long): WorkoutEntryEntity? = dao.getById(id)
 
+    suspend fun getByDate(date: Long): WorkoutEntryEntity? = dao.getByDate(date)
+
     fun getByIdFlow(id: Long): Flow<WorkoutEntryEntity?> = dao.getByIdFlow(id)
 
     suspend fun insert(entry: WorkoutEntryEntity): Long = dao.insert(entry)

@@ -309,13 +309,10 @@ private fun StatsSubmenu(
     onMonthly: () -> Unit,
     onYearly: () -> Unit
 ) {
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     Card(
         shape = RoundedCornerShape(10.dp),
         elevation = CardDefaults.cardElevation(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isDark) Color(0xFF3D3D3D) else Color(0xFFEEEEEE)
-        )
+        colors = CardDefaults.cardColors(containerColor = navBarBg)
     ) {
         Column(modifier = Modifier.padding(6.dp)) {
             StatsSubmenuItem(

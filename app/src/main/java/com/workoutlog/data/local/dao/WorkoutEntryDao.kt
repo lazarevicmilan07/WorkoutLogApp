@@ -21,6 +21,9 @@ interface WorkoutEntryDao {
     @Query("SELECT * FROM workout_entries WHERE id = :id")
     suspend fun getById(id: Long): WorkoutEntryEntity?
 
+    @Query("SELECT * FROM workout_entries WHERE date = :date LIMIT 1")
+    suspend fun getByDate(date: Long): WorkoutEntryEntity?
+
     @Query("SELECT * FROM workout_entries WHERE id = :id")
     fun getByIdFlow(id: Long): Flow<WorkoutEntryEntity?>
 

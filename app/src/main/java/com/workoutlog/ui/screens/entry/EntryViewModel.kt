@@ -4,10 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.workoutlog.data.repository.WorkoutEntryRepository
 import com.workoutlog.data.repository.WorkoutTypeRepository
+import com.workoutlog.domain.model.WorkoutEntry
 import com.workoutlog.domain.model.WorkoutType
 import com.workoutlog.domain.model.toDomain
 import com.workoutlog.domain.model.toEntity
-import com.workoutlog.domain.model.WorkoutEntry
+import com.workoutlog.domain.model.toEpochMilli
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,7 +29,8 @@ data class EntryUiState(
     val durationMinutes: String = "",
     val caloriesBurned: String = "",
     val workoutTypes: List<WorkoutType> = emptyList(),
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val hasConflict: Boolean = false
 )
 
 sealed class EntryEvent {
@@ -76,16 +78,26 @@ class EntryViewModel @Inject constructor(
                 try { LocalDate.parse(dateArg) } catch (_: Exception) { LocalDate.now() }
             } else LocalDate.now()
 
+            val hasConflict = entryRepository.getByDate(initialDate.toEpochMilli()) != null
+
             _uiState.value = EntryUiState(
                 isLoading = false,
                 date = initialDate,
-                workoutTypes = types
+                workoutTypes = types,
+                hasConflict = hasConflict
             )
         }
     }
 
     fun onDateChanged(date: LocalDate) {
-        _uiState.value = _uiState.value.copy(date = date)
+        val current = _uiState.value
+        _uiState.value = current.copy(date = date)
+        if (!current.isEditing) {
+            viewModelScope.launch {
+                val hasConflict = entryRepository.getByDate(date.toEpochMilli()) != null
+                _uiState.value = _uiState.value.copy(hasConflict = hasConflict)
+            }
+        }
     }
 
     fun onTypeSelected(typeId: Long) {

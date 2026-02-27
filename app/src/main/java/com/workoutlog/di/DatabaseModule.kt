@@ -24,7 +24,7 @@ object DatabaseModule {
             WorkoutDatabase::class.java,
             WorkoutDatabase.DATABASE_NAME
         )
-            .addMigrations(WorkoutDatabase.MIGRATION_1_2)
+            .addMigrations(WorkoutDatabase.MIGRATION_1_2, WorkoutDatabase.MIGRATION_2_3)
             .build()
     }
 
