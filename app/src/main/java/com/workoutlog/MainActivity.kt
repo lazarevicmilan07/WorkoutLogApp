@@ -72,7 +72,8 @@ import com.workoutlog.ui.theme.NavBarAccentDark
 import com.workoutlog.ui.theme.NavBarAccentLight
 import com.workoutlog.ui.theme.NavBarBgDark
 import com.workoutlog.ui.theme.NavBarBgLight
-import com.workoutlog.ui.theme.NavBarUnselected
+import com.workoutlog.ui.theme.NavBarUnselectedDark
+import com.workoutlog.ui.theme.NavBarUnselectedLight
 import com.workoutlog.ui.theme.WorkoutLogTheme
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
@@ -150,6 +151,7 @@ fun MainContent(startDestination: String) {
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val navBarBg = if (isDark) NavBarBgDark else NavBarBgLight
     val navBarAccent = if (isDark) NavBarAccentDark else NavBarAccentLight
+    val navBarUnselected = if (isDark) NavBarUnselectedDark else NavBarUnselectedLight
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -181,6 +183,7 @@ fun MainContent(startDestination: String) {
                                     item = item,
                                     selected = isSelected,
                                     selectedColor = navBarAccent,
+                                    unselectedColor = navBarUnselected,
                                     onClick = {
                                         if (item.screen == Screen.StatsMonthly) {
                                             statsSubmenuVisible = !statsSubmenuVisible
@@ -223,6 +226,7 @@ fun MainContent(startDestination: String) {
         ) {
             StatsSubmenu(
                 navBarAccent = navBarAccent,
+                navBarUnselected = navBarUnselected,
                 navBarBg = navBarBg,
                 currentRoute = currentRoute,
                 onMonthly = {
@@ -255,6 +259,7 @@ private fun NavBarItem(
     item: BottomNavItem,
     selected: Boolean,
     selectedColor: Color,
+    unselectedColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -265,7 +270,7 @@ private fun NavBarItem(
         animationSpec = tween(100),
         label = "nav_scale"
     )
-    val itemColor = if (selected) selectedColor else NavBarUnselected
+    val itemColor = if (selected) selectedColor else unselectedColor
 
     Column(
         modifier = modifier
@@ -298,6 +303,7 @@ private fun NavBarItem(
 @Composable
 private fun StatsSubmenu(
     navBarAccent: Color,
+    navBarUnselected: Color,
     navBarBg: Color,
     currentRoute: String?,
     onMonthly: () -> Unit,
@@ -315,13 +321,13 @@ private fun StatsSubmenu(
             StatsSubmenuItem(
                 icon = Icons.Filled.BarChart,
                 label = "Monthly",
-                color = if (currentRoute == Screen.StatsMonthly.route) navBarAccent else NavBarUnselected,
+                color = if (currentRoute == Screen.StatsMonthly.route) navBarAccent else navBarUnselected,
                 onClick = onMonthly
             )
             StatsSubmenuItem(
                 icon = Icons.Filled.CalendarMonth,
                 label = "Yearly",
-                color = if (currentRoute == Screen.StatsYearly.route) navBarAccent else NavBarUnselected,
+                color = if (currentRoute == Screen.StatsYearly.route) navBarAccent else navBarUnselected,
                 onClick = onYearly
             )
         }

@@ -29,6 +29,7 @@ data class HomeUiState(
     val entriesByDate: Map<LocalDate, List<WorkoutEntry>> = emptyMap(),
     val workoutCount: Int = 0,
     val totalEntries: Int = 0,
+    val daysElapsed: Int = 0,
     val workoutPercentage: Int = 0,
     val selectedFilter: Long? = null
 )
@@ -65,7 +66,14 @@ class HomeViewModel @Inject constructor(
 
         val workoutCount = allEntries.count { it.workoutType?.isRestDay != true }
         val totalEntries = allEntries.size
-        val workoutPercentage = if (totalEntries > 0) workoutCount * 100 / totalEntries else 0
+        val today = LocalDate.now()
+        val currentYearMonth = YearMonth.now()
+        val daysElapsed = when {
+            month > currentYearMonth -> 0
+            month == currentYearMonth -> today.dayOfMonth
+            else -> month.lengthOfMonth()
+        }
+        val workoutPercentage = if (daysElapsed > 0) workoutCount * 100 / daysElapsed else 0
 
         HomeUiState(
             isLoading = false,
@@ -75,6 +83,7 @@ class HomeViewModel @Inject constructor(
             entriesByDate = entriesByDate,
             workoutCount = workoutCount,
             totalEntries = totalEntries,
+            daysElapsed = daysElapsed,
             workoutPercentage = workoutPercentage,
             selectedFilter = filter
         )

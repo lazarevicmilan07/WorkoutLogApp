@@ -75,11 +75,12 @@ val WorkoutColors = listOf(
 )
 
 // Nav bar
-val NavBarAccentLight = Color(0xFFB8A970)
-val NavBarAccentDark = Color(0xFFD4C896)
+val NavBarAccentLight = Color(0xFF3B82F6)
+val NavBarAccentDark = Color(0xFF60A5FA)
 val NavBarBgLight = Color(0xFFF5F5F0)
-val NavBarBgDark = Color(0xFF1E1E1E)
-val NavBarUnselected = Color(0xFF8A8A7A)
+val NavBarBgDark = Color(0xFF111827)
+val NavBarUnselectedLight = Color(0xFF6B7280)
+val NavBarUnselectedDark = Color(0xFF9CA3AF)
 
 val WorkoutIcons: Map<String, ImageVector> = mapOf(
     "fitness_center" to Icons.Default.FitnessCenter,

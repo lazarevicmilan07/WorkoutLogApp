@@ -147,7 +147,7 @@ fun HomeScreen(
                     .padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                val hasEntries = state.totalEntries > 0
+                val hasData = state.daysElapsed > 0
                 DashStatCard(
                     icon = {
                         Icon(
@@ -159,7 +159,7 @@ fun HomeScreen(
                     },
                     accentColor = Color(0xFF4CAF6A),
                     label = "Workouts",
-                    value = if (hasEntries) "${state.workoutCount} / ${state.totalEntries}" else "—",
+                    value = if (hasData) "${state.workoutCount} / ${state.daysElapsed}" else "—",
                     modifier = Modifier.weight(1f)
                 )
                 DashStatCard(
@@ -172,8 +172,8 @@ fun HomeScreen(
                         )
                     },
                     accentColor = Color(0xFF5B8DEE),
-                    label = "Active Rate",
-                    value = if (hasEntries) "${state.workoutPercentage}%" else "—",
+                    label = "Consistency",
+                    value = if (hasData) "${state.workoutPercentage}%" else "—",
                     modifier = Modifier.weight(1f)
                 )
             }
