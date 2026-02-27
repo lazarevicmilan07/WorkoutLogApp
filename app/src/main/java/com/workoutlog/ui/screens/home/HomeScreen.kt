@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.workoutlog.domain.model.WorkoutEntry
+import com.workoutlog.ui.components.DashStatCard
 import com.workoutlog.ui.components.LoadingIndicator
 import com.workoutlog.ui.components.MonthYearPickerDialog
 import com.workoutlog.ui.screens.entry.AddEditEntrySheet
@@ -242,38 +243,56 @@ fun HomeScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
+                        .padding(horizontal = 4.dp, vertical = 4.dp)
                         .offset { IntOffset(dragOffset.value.roundToInt(), 0) },
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = {
                         scope.launch {
-                            // Left chevron → previous month: slide out right, come in from left
                             dragOffset.animateTo(screenWidthPx, tween(150))
                             viewModel.previousMonth()
                             dragOffset.snapTo(-screenWidthPx)
                             dragOffset.animateTo(0f, tween(200))
                         }
                     }) {
-                        Icon(Icons.Default.ChevronLeft, contentDescription = "Previous month")
+                        Icon(
+                            Icons.Default.ChevronLeft,
+                            contentDescription = "Previous month",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
-                    Text(
-                        text = state.currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.clickable { showMonthPicker = true }
-                    )
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { showMonthPicker = true },
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = state.currentMonth.format(DateTimeFormatter.ofPattern("MMMM")),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = state.currentMonth.format(DateTimeFormatter.ofPattern("yyyy")),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     IconButton(onClick = {
                         scope.launch {
-                            // Right chevron → next month: slide out left, come in from right
                             dragOffset.animateTo(-screenWidthPx, tween(150))
                             viewModel.nextMonth()
                             dragOffset.snapTo(screenWidthPx)
                             dragOffset.animateTo(0f, tween(200))
                         }
                     }) {
-                        Icon(Icons.Default.ChevronRight, contentDescription = "Next month")
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = "Next month",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
 
@@ -458,43 +477,3 @@ fun WorkoutEntryItem(
     }
 }
 
-@Composable
-private fun DashStatCard(
-    icon: @Composable () -> Unit,
-    accentColor: Color,
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(accentColor.copy(alpha = 0.1f))
-            .padding(horizontal = 16.dp, vertical = 14.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(RoundedCornerShape(9.dp))
-                    .background(accentColor.copy(alpha = 0.22f)),
-                contentAlignment = Alignment.Center
-            ) {
-                icon()
-            }
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = accentColor
-            )
-        }
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
