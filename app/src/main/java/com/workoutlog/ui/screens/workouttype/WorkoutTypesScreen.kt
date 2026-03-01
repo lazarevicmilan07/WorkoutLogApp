@@ -99,15 +99,21 @@ fun WorkoutTypesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(top = 8.dp, bottom = 88.dp)
+            contentPadding = PaddingValues(top = 0.dp, bottom = 88.dp)
         ) {
             item {
-                Text(
-                    text = "Workout Types",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                        .padding(start = 16.dp, top = 14.dp, end = 16.dp, bottom = 12.dp)
+                ) {
+                    Text(
+                        text = "Workout Types",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             items(state.types, key = { it.id }) { type ->

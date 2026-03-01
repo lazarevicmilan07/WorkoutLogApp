@@ -7,6 +7,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -129,17 +131,31 @@ fun ReportsScreen(
         }
     }
 
-    Scaffold { padding ->
+    Scaffold(contentWindowInsets = WindowInsets(0)) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // Title — dynamic per mode
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                    .padding(start = 16.dp, top = 14.dp, end = 16.dp, bottom = 12.dp)
+            ) {
+                Text(
+                    text = if (state.isMonthly) "Monthly Stats" else "Yearly Stats",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
             // Period selector
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 6.dp),
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -289,6 +305,13 @@ fun MonthlyReportContent(state: ReportsUiState) {
         return
     }
 
+    var includeRestDays by remember { mutableStateOf(true) }
+    var selectedDistIndex by remember(report, includeRestDays) { mutableStateOf(-1) }
+    val filteredCounts = remember(report.workoutTypeCounts, includeRestDays) {
+        if (includeRestDays) report.workoutTypeCounts
+        else report.workoutTypeCounts.filter { !it.workoutType.isRestDay }
+    }
+
     val ym = YearMonth.of(report.year, report.month)
     val currentYm = YearMonth.now()
     val daysElapsed = when {
@@ -390,15 +413,70 @@ fun MonthlyReportContent(state: ReportsUiState) {
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        DonutChart(
-                            data = report.workoutTypeCounts,
-                            modifier = Modifier.size(140.dp)
-                        )
+                        // Left: donut + toggle pill underneath
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            if (filteredCounts.isNotEmpty()) {
+                                DonutChart(
+                                    data = filteredCounts,
+                                    selectedIndex = selectedDistIndex,
+                                    onSelectionChange = { selectedDistIndex = it },
+                                    modifier = Modifier.size(140.dp)
+                                )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .padding(top = if (filteredCounts.isNotEmpty()) 14.dp else 0.dp)
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) { includeRestDays = !includeRestDays },
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Rest days",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(width = 34.dp, height = 18.dp)
+                                        .clip(RoundedCornerShape(9.dp))
+                                        .background(
+                                            if (includeRestDays) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f)
+                                        )
+                                        .padding(2.dp),
+                                    contentAlignment = if (includeRestDays) Alignment.CenterEnd else Alignment.CenterStart
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(14.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White)
+                                    )
+                                }
+                            }
+                        }
                         Spacer(Modifier.width(16.dp))
-                        DistributionLegend(
-                            data = report.workoutTypeCounts,
-                            modifier = Modifier.weight(1f)
-                        )
+                        // Right: legend or empty message
+                        if (filteredCounts.isNotEmpty()) {
+                            DistributionLegend(
+                                data = filteredCounts,
+                                selectedIndex = selectedDistIndex,
+                                modifier = Modifier.weight(1f)
+                            )
+                        } else {
+                            Text(
+                                text = "No data to display",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(vertical = 8.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             }
@@ -494,6 +572,7 @@ fun YearlyReportContent(state: ReportsUiState) {
         // Workout distribution
         if (report.workoutTypeCounts.isNotEmpty()) {
             item {
+                var selectedDistIndex by remember(report) { mutableStateOf(-1) }
                 StatsCard(title = "Distribution") {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -501,11 +580,14 @@ fun YearlyReportContent(state: ReportsUiState) {
                     ) {
                         DonutChart(
                             data = report.workoutTypeCounts,
+                            selectedIndex = selectedDistIndex,
+                            onSelectionChange = { selectedDistIndex = it },
                             modifier = Modifier.size(130.dp)
                         )
                         Spacer(Modifier.width(16.dp))
                         DistributionLegend(
                             data = report.workoutTypeCounts,
+                            selectedIndex = selectedDistIndex,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -594,17 +676,18 @@ fun StatsCard(
 @Composable
 fun DonutChart(
     data: List<WorkoutTypeCountData>,
+    selectedIndex: Int,
+    onSelectionChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (data.isEmpty()) return
     val total = data.sumOf { it.count }
-    var selectedIndex by remember(data) { mutableStateOf(-1) }
     val strokeWidth = 70f
 
     Box(
         modifier = modifier
             .clip(CircleShape)
-            .pointerInput(data) {
+            .pointerInput(data, selectedIndex) {
                 detectTapGestures { offset ->
                     val canvasPx = minOf(size.width, size.height).toFloat()
                     val diameter = canvasPx - strokeWidth - 4f
@@ -616,7 +699,7 @@ fun DonutChart(
                     val dy = offset.y - cy
                     val dist = sqrt((dx * dx + dy * dy).toDouble()).toFloat()
                     when {
-                        dist < innerRadius -> selectedIndex = -1
+                        dist < innerRadius -> onSelectionChange(-1)
                         dist <= outerRadius -> {
                             var angle = (atan2(dy.toDouble(), dx.toDouble()) * 180.0 / PI).toFloat() + 90f
                             if (angle < 0f) angle += 360f
@@ -627,7 +710,7 @@ fun DonutChart(
                                 if (angle >= startAngle && angle < startAngle + sweep) hit = index
                                 startAngle += sweep
                             }
-                            selectedIndex = if (hit == selectedIndex) -1 else hit
+                            onSelectionChange(if (hit == selectedIndex) -1 else hit)
                         }
                     }
                 }
@@ -692,6 +775,7 @@ fun DonutChart(
 @Composable
 fun DistributionLegend(
     data: List<WorkoutTypeCountData>,
+    selectedIndex: Int = -1,
     modifier: Modifier = Modifier
 ) {
     val total = data.sumOf { it.count }.toFloat()
@@ -699,7 +783,10 @@ fun DistributionLegend(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        data.forEach { item ->
+        data.forEachIndexed { index, item ->
+            val isSelected = selectedIndex == index
+            val dimmed = selectedIndex != -1 && !isSelected
+            val contentAlpha = if (dimmed) 0.28f else 1f
             val fraction = item.count / total
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(
@@ -710,21 +797,22 @@ fun DistributionLegend(
                         modifier = Modifier
                             .size(8.dp)
                             .clip(CircleShape)
-                            .background(item.workoutType.color)
+                            .background(item.workoutType.color.copy(alpha = contentAlpha))
                     )
                     Text(
                         text = item.workoutType.name,
                         style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         modifier = Modifier.weight(1f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
                     )
                     Text(
                         text = "${item.count} (${(fraction * 100).toInt()}%)",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                     )
                 }
                 // Mini progress bar
@@ -733,14 +821,14 @@ fun DistributionLegend(
                         .fillMaxWidth()
                         .height(3.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(item.workoutType.color.copy(alpha = 0.15f))
+                        .background(item.workoutType.color.copy(alpha = if (dimmed) 0.07f else 0.15f))
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(fraction)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(2.dp))
-                            .background(item.workoutType.color)
+                            .background(item.workoutType.color.copy(alpha = contentAlpha))
                     )
                 }
             }

@@ -72,10 +72,8 @@ import com.workoutlog.ui.screens.entry.EntryViewModel
 import com.workoutlog.ui.screens.overview.MonthCalendar
 import com.workoutlog.ui.theme.getWorkoutIcon
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -107,6 +105,24 @@ fun HomeScreen(
     val density = LocalDensity.current
     val screenWidthPx = with(density) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
 
+    fun animatePrevious() {
+        scope.launch {
+            dragOffset.animateTo(screenWidthPx, tween(150))
+            viewModel.previousMonth()
+            dragOffset.snapTo(-screenWidthPx)
+            dragOffset.animateTo(0f, tween(200))
+        }
+    }
+
+    fun animateNext() {
+        scope.launch {
+            dragOffset.animateTo(-screenWidthPx, tween(150))
+            viewModel.nextMonth()
+            dragOffset.snapTo(screenWidthPx)
+            dragOffset.animateTo(0f, tween(200))
+        }
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         floatingActionButton = {
@@ -129,54 +145,16 @@ fun HomeScreen(
                 .padding(padding)
         ) {
             // Header
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                Text(
-                    text = "Workout Log",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = LocalDate.now().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Stats row
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                    .padding(start = 16.dp, top = 14.dp, end = 16.dp, bottom = 12.dp)
             ) {
-                val hasData = state.daysElapsed > 0
-                DashStatCard(
-                    icon = {
-                        Icon(
-                            Icons.Default.FitnessCenter,
-                            contentDescription = null,
-                            tint = Color(0xFF4CAF6A),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    },
-                    accentColor = Color(0xFF4CAF6A),
-                    label = "Workouts",
-                    value = if (hasData) "${state.workoutCount} / ${state.daysElapsed}" else "—",
-                    modifier = Modifier.weight(1f)
-                )
-                DashStatCard(
-                    icon = {
-                        Icon(
-                            Icons.Default.BarChart,
-                            contentDescription = null,
-                            tint = Color(0xFF5B8DEE),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    },
-                    accentColor = Color(0xFF5B8DEE),
-                    label = "Consistency",
-                    value = if (hasData) "${state.workoutPercentage}%" else "—",
-                    modifier = Modifier.weight(1f)
+                Text(
+                    text = "Workout Log",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
                 )
             }
 
@@ -201,8 +179,50 @@ fun HomeScreen(
                 }
             }
 
+            // Month selector — static, does not animate with swipe
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { animatePrevious() }) {
+                    Icon(
+                        Icons.Default.ChevronLeft,
+                        contentDescription = "Previous month",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { showMonthPicker = true },
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = state.currentMonth.format(DateTimeFormatter.ofPattern("MMMM")),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = state.currentMonth.format(DateTimeFormatter.ofPattern("yyyy")),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = { animateNext() }) {
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = "Next month",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
 
-            Column(
+            // Animated area: stat cards + calendar slide together on month change
+            Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -212,14 +232,12 @@ fun HomeScreen(
                             onDragEnd = {
                                 scope.launch {
                                     when {
-                                        // Swipe RIGHT → previous month: slide out right, come in from left
                                         dragOffset.value > 100 -> {
                                             dragOffset.animateTo(screenWidthPx, tween(150))
                                             viewModel.previousMonth()
                                             dragOffset.snapTo(-screenWidthPx)
                                             dragOffset.animateTo(0f, tween(200))
                                         }
-                                        // Swipe LEFT → next month: slide out left, come in from right
                                         dragOffset.value < -100 -> {
                                             dragOffset.animateTo(-screenWidthPx, tween(150))
                                             viewModel.nextMonth()
@@ -239,82 +257,65 @@ fun HomeScreen(
                         )
                     }
             ) {
-                // Month selector slides with drag
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 4.dp)
-                        .offset { IntOffset(dragOffset.value.roundToInt(), 0) },
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = {
-                        scope.launch {
-                            dragOffset.animateTo(screenWidthPx, tween(150))
-                            viewModel.previousMonth()
-                            dragOffset.snapTo(-screenWidthPx)
-                            dragOffset.animateTo(0f, tween(200))
+                Box(modifier = Modifier.offset { IntOffset(dragOffset.value.roundToInt(), 0) }) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Stat cards
+                        val hasData = state.daysElapsed > 0
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            DashStatCard(
+                                icon = {
+                                    Icon(
+                                        Icons.Default.FitnessCenter,
+                                        contentDescription = null,
+                                        tint = Color(0xFF4CAF6A),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                accentColor = Color(0xFF4CAF6A),
+                                label = "Workouts",
+                                value = if (hasData) "${state.workoutCount} / ${state.daysElapsed}" else "—",
+                                modifier = Modifier.weight(1f)
+                            )
+                            DashStatCard(
+                                icon = {
+                                    Icon(
+                                        Icons.Default.BarChart,
+                                        contentDescription = null,
+                                        tint = Color(0xFF5B8DEE),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                accentColor = Color(0xFF5B8DEE),
+                                label = "Consistency",
+                                value = if (hasData) "${state.workoutPercentage}%" else "—",
+                                modifier = Modifier.weight(1f)
+                            )
                         }
-                    }) {
-                        Icon(
-                            Icons.Default.ChevronLeft,
-                            contentDescription = "Previous month",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { showMonthPicker = true },
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = state.currentMonth.format(DateTimeFormatter.ofPattern("MMMM")),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = state.currentMonth.format(DateTimeFormatter.ofPattern("yyyy")),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(onClick = {
-                        scope.launch {
-                            dragOffset.animateTo(-screenWidthPx, tween(150))
-                            viewModel.nextMonth()
-                            dragOffset.snapTo(screenWidthPx)
-                            dragOffset.animateTo(0f, tween(200))
-                        }
-                    }) {
-                        Icon(
-                            Icons.Default.ChevronRight,
-                            contentDescription = "Next month",
-                            tint = MaterialTheme.colorScheme.primary
+
+                        // Calendar grid
+                        MonthCalendar(
+                            yearMonth = state.currentMonth,
+                            entriesByDate = state.entriesByDate,
+                            onDateClick = { date ->
+                                val existing = state.entriesByDate[date]
+                                if (!existing.isNullOrEmpty()) {
+                                    openEditSheet(existing.first().id)
+                                } else {
+                                    openAddSheet(date.toString())
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp)
                         )
                     }
                 }
-
-                Spacer(Modifier.height(8.dp))
-
-                // Calendar grid
-                MonthCalendar(
-                    yearMonth = state.currentMonth,
-                    entriesByDate = state.entriesByDate,
-                    onDateClick = { date ->
-                        val existing = state.entriesByDate[date]
-                        if (!existing.isNullOrEmpty()) {
-                            openEditSheet(existing.first().id)
-                        } else {
-                            openAddSheet(date.toString())
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 4.dp)
-                        .offset { IntOffset(dragOffset.value.roundToInt(), 0) }
-                )
             }
         }
     }
@@ -328,10 +329,7 @@ fun HomeScreen(
                 if (yearMonth != state.currentMonth) {
                     val goingBack = yearMonth < state.currentMonth
                     scope.launch {
-                        dragOffset.animateTo(
-                            if (goingBack) screenWidthPx else -screenWidthPx,
-                            tween(150)
-                        )
+                        dragOffset.animateTo(if (goingBack) screenWidthPx else -screenWidthPx, tween(150))
                         viewModel.goToMonth(yearMonth)
                         dragOffset.snapTo(if (goingBack) -screenWidthPx else screenWidthPx)
                         dragOffset.animateTo(0f, tween(200))
