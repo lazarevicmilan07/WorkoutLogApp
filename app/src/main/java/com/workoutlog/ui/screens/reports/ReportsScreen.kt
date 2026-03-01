@@ -16,10 +16,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,9 +33,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Hotel
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -60,8 +64,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -378,11 +382,11 @@ fun MonthlyReportContent(state: ReportsUiState) {
                             Icon(
                                 Icons.Default.Hotel,
                                 contentDescription = null,
-                                tint = purpleAccent,
+                                tint = Color(0xFFEF4444),
                                 modifier = Modifier.size(16.dp)
                             )
                         },
-                        accentColor = purpleAccent,
+                        accentColor = Color(0xFFEF4444),
                         label = "Rest Days",
                         value = "${report.totalRestDays}",
                         modifier = Modifier.weight(1f)
@@ -444,7 +448,7 @@ fun MonthlyReportContent(state: ReportsUiState) {
                                         .clip(RoundedCornerShape(9.dp))
                                         .background(
                                             if (includeRestDays) MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f)
+                                            else if (isSystemInDarkTheme()) Color(0xFF1F2937) else Color(0xFFE5E7EB)
                                         )
                                         .padding(2.dp),
                                     contentAlignment = if (includeRestDays) Alignment.CenterEnd else Alignment.CenterStart
@@ -497,101 +501,236 @@ fun YearlyReportContent(state: ReportsUiState) {
         return
     }
 
-    val activeMonths = report.monthlyCounts.count { it.count > 0 }
-    val avgPerMonth = if (activeMonths > 0) (report.totalWorkouts.toFloat() / activeMonths).roundToInt() else 0
+    val actualWorkouts = report.totalWorkouts - report.totalRestDays
+    val currentYear = LocalDate.now().year
+    val daysElapsed = when {
+        report.year > currentYear -> 0
+        report.year == currentYear -> LocalDate.now().dayOfYear
+        else -> LocalDate.of(report.year, 12, 31).dayOfYear
+    }
+    val consistencyPct = if (daysElapsed > 0) actualWorkouts * 100 / daysElapsed else 0
+    val elapsedMonths = when {
+        report.year > currentYear -> 0
+        report.year == currentYear -> LocalDate.now().monthValue
+        else -> 12
+    }
     val bestMonthData = report.monthlyCounts.maxByOrNull { it.count }
-    val bestMonthName = if (bestMonthData != null && bestMonthData.count > 0) {
-        Month.of(bestMonthData.month).getDisplayName(JTextStyle.SHORT, Locale.getDefault())
+    val bestMonthValue = if (bestMonthData != null && bestMonthData.count > 0) {
+        Month.of(bestMonthData.month).getDisplayName(JTextStyle.FULL, Locale.getDefault())
     } else "—"
+    val avgPerMonth = if (elapsedMonths > 0) (actualWorkouts.toFloat() / elapsedMonths).roundToInt() else 0
+    val favouriteWorkout = report.workoutTypeCounts
+        .filter { !it.workoutType.isRestDay }
+        .maxByOrNull { it.count }
+        ?.workoutType?.name ?: "—"
+    val activeMonths = report.monthlyCounts.count { it.count > 0 }
 
-    val blueAccent = MaterialTheme.colorScheme.primary
-    val purpleAccent = Color(0xFF8B5CF6)
+    val greenAccent = Color(0xFF4CAF6A)
+    val blueAccent = Color(0xFF5B8DEE)
     val amberAccent = MaterialTheme.colorScheme.tertiary
-    val greenAccent = Color(0xFF10B981)
+    val orangeAccent = Color(0xFFAB47BC)
+    val violetAccent = Color(0xFF8B5CF6)
+    val tealAccent = Color(0xFF26A69A)
 
     LazyColumn(
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 2×2 metric tiles
+        // 3×2 dash stat cards — equal height via IntrinsicSize.Min
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    MetricTile(
+                    DashStatCard(
+                        icon = {
+                            Icon(
+                                Icons.Default.FitnessCenter,
+                                contentDescription = null,
+                                tint = greenAccent,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        accentColor = greenAccent,
                         label = "Workouts",
-                        value = "${report.totalWorkouts}",
-                        icon = Icons.Default.FitnessCenter,
-                        accentColor = blueAccent,
-                        modifier = Modifier.weight(1f)
+                        value = "$actualWorkouts / $daysElapsed",
+                        modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 84.dp)
                     )
-                    MetricTile(
-                        label = "Rest Days",
-                        value = "${report.totalRestDays}",
-                        icon = Icons.Default.Hotel,
-                        accentColor = purpleAccent,
-                        modifier = Modifier.weight(1f)
+                    DashStatCard(
+                        icon = {
+                            Icon(
+                                Icons.Default.BarChart,
+                                contentDescription = null,
+                                tint = blueAccent,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        accentColor = blueAccent,
+                        label = "Avg/Month Consistency",
+                        value = "$consistencyPct%",
+                        modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 84.dp)
                     )
                 }
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    MetricTile(
+                    DashStatCard(
+                        icon = {
+                            Icon(
+                                Icons.Default.EmojiEvents,
+                                contentDescription = null,
+                                tint = violetAccent,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        accentColor = violetAccent,
                         label = "Best Month",
-                        value = bestMonthName,
-                        icon = Icons.Default.EmojiEvents,
-                        accentColor = amberAccent,
-                        modifier = Modifier.weight(1f)
+                        value = bestMonthValue,
+                        modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 84.dp)
                     )
-                    MetricTile(
-                        label = "Avg / Month",
+                    DashStatCard(
+                        icon = {
+                            Icon(
+                                Icons.Default.Star,
+                                contentDescription = null,
+                                tint = Color(0xFF29B6F6),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        accentColor = Color(0xFF29B6F6),
+                        label = "Favourite",
+                        value = favouriteWorkout,
+                        modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 84.dp)
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    DashStatCard(
+                        icon = {
+                            Icon(
+                                Icons.AutoMirrored.Filled.TrendingUp,
+                                contentDescription = null,
+                                tint = orangeAccent,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        accentColor = orangeAccent,
+                        label = "Avg/Month Workouts",
                         value = if (avgPerMonth > 0) "$avgPerMonth" else "—",
-                        icon = Icons.AutoMirrored.Filled.TrendingUp,
-                        accentColor = greenAccent,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 84.dp)
+                    )
+                    DashStatCard(
+                        icon = {
+                            Icon(
+                                Icons.Default.DateRange,
+                                contentDescription = null,
+                                tint = tealAccent,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        accentColor = tealAccent,
+                        label = "Active Months",
+                        value = "$activeMonths / $elapsedMonths",
+                        modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 84.dp)
                     )
                 }
             }
         }
 
-        // Monthly activity bar chart
+        // Workout distribution — now first, matching monthly style with rest-days toggle
+        if (report.workoutTypeCounts.isNotEmpty()) {
+            item {
+                var selectedDistIndex by remember(report) { mutableStateOf(-1) }
+                var includeRestDays by remember { mutableStateOf(true) }
+                val filteredCounts = remember(report.workoutTypeCounts, includeRestDays) {
+                    if (includeRestDays) report.workoutTypeCounts
+                    else report.workoutTypeCounts.filter { !it.workoutType.isRestDay }
+                }
+                StatsCard(title = "Distribution") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            if (filteredCounts.isNotEmpty()) {
+                                DonutChart(
+                                    data = filteredCounts,
+                                    selectedIndex = selectedDistIndex,
+                                    onSelectionChange = { selectedDistIndex = it },
+                                    modifier = Modifier.size(140.dp)
+                                )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .padding(top = if (filteredCounts.isNotEmpty()) 14.dp else 0.dp)
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) { includeRestDays = !includeRestDays },
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Rest days",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(width = 34.dp, height = 18.dp)
+                                        .clip(RoundedCornerShape(9.dp))
+                                        .background(
+                                            if (includeRestDays) MaterialTheme.colorScheme.primary
+                                            else if (isSystemInDarkTheme()) Color(0xFF1F2937) else Color(0xFFE5E7EB)
+                                        )
+                                        .padding(2.dp),
+                                    contentAlignment = if (includeRestDays) Alignment.CenterEnd else Alignment.CenterStart
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(14.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White)
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(Modifier.width(16.dp))
+                        if (filteredCounts.isNotEmpty()) {
+                            DistributionLegend(
+                                data = filteredCounts,
+                                selectedIndex = selectedDistIndex,
+                                modifier = Modifier.weight(1f)
+                            )
+                        } else {
+                            Text(
+                                text = "No data to display",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(vertical = 8.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Monthly activity
         item {
             StatsCard(title = "Monthly Activity") {
                 MonthlyBarChart(
                     data = report.monthlyCounts,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(150.dp)
+                        .height(160.dp)
                 )
-            }
-        }
-
-        // Workout distribution
-        if (report.workoutTypeCounts.isNotEmpty()) {
-            item {
-                var selectedDistIndex by remember(report) { mutableStateOf(-1) }
-                StatsCard(title = "Distribution") {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        DonutChart(
-                            data = report.workoutTypeCounts,
-                            selectedIndex = selectedDistIndex,
-                            onSelectionChange = { selectedDistIndex = it },
-                            modifier = Modifier.size(130.dp)
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        DistributionLegend(
-                            data = report.workoutTypeCounts,
-                            selectedIndex = selectedDistIndex,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
             }
         }
     }
@@ -600,52 +739,6 @@ fun YearlyReportContent(state: ReportsUiState) {
 // ─────────────────────────────────────────────────────────
 // Shared composables
 // ─────────────────────────────────────────────────────────
-
-@Composable
-fun MetricTile(
-    label: String,
-    value: String,
-    icon: ImageVector,
-    accentColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(RoundedCornerShape(9.dp))
-                    .background(accentColor.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
 
 @Composable
 fun StatsCard(
@@ -842,58 +935,100 @@ fun MonthlyBarChart(
     modifier: Modifier = Modifier
 ) {
     val primary = MaterialTheme.colorScheme.primary
-    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+    val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val maxCount = data.maxOfOrNull { it.count } ?: 1
-    val monthLabels = listOf("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
+    val maxCount = data.maxOfOrNull { it.count }.takeIf { it != null && it > 0 } ?: 1
+    val bestMonthNum = data.maxByOrNull { it.count }?.takeIf { it.count > 0 }?.month ?: -1
     val dataMap = data.associate { it.month to it.count }
+    val monthLabels = listOf("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
 
     Canvas(modifier = modifier) {
-        val barWidth = size.width / 12f
-        val labelHeight = 24f
-        val chartHeight = size.height - labelHeight
-        val cornerRadius = CornerRadius(5f, 5f)
-        val paint = android.graphics.Paint().apply {
+        val labelAreaH = 26f
+        val valueAreaH = 30f
+        val chartH = size.height - labelAreaH - valueAreaH
+        val barSlotW = size.width / 12f
+        val barW = barSlotW * 0.55f
+
+        // Subtle mid-line and baseline
+        drawLine(
+            color = gridColor,
+            start = Offset(0f, valueAreaH + chartH * 0.5f),
+            end = Offset(size.width, valueAreaH + chartH * 0.5f),
+            strokeWidth = 1.5f
+        )
+        drawLine(
+            color = gridColor.copy(alpha = 0.35f),
+            start = Offset(0f, valueAreaH + chartH),
+            end = Offset(size.width, valueAreaH + chartH),
+            strokeWidth = 1.5f
+        )
+
+        val setColor: (android.graphics.Paint, Color) -> Unit = { paint, color ->
+            paint.color = android.graphics.Color.argb(
+                (color.alpha * 255).toInt(),
+                (color.red * 255).toInt(),
+                (color.green * 255).toInt(),
+                (color.blue * 255).toInt()
+            )
+        }
+
+        val labelPaint = android.graphics.Paint().apply {
             textSize = 24f
             textAlign = android.graphics.Paint.Align.CENTER
             isAntiAlias = true
-            color = android.graphics.Color.argb(
-                (labelColor.alpha * 255).toInt(),
-                (labelColor.red * 255).toInt(),
-                (labelColor.green * 255).toInt(),
-                (labelColor.blue * 255).toInt()
-            )
+        }
+        val valuePaint = android.graphics.Paint().apply {
+            textSize = 21f
+            textAlign = android.graphics.Paint.Align.CENTER
+            isAntiAlias = true
         }
 
         for (index in 0..11) {
             val month = index + 1
             val count = dataMap[month] ?: 0
-            val x = index * barWidth
-            val barLeft = x + barWidth * 0.2f
-            val barW = barWidth * 0.6f
-
-            drawRoundRect(
-                color = trackColor,
-                topLeft = Offset(barLeft, 0f),
-                size = Size(barW, chartHeight),
-                cornerRadius = cornerRadius
-            )
+            val xCenter = (index + 0.5f) * barSlotW
+            val barLeft = index * barSlotW + (barSlotW - barW) / 2f
+            val isBest = month == bestMonthNum
 
             if (count > 0) {
-                val barHeight = (count.toFloat() / maxCount) * chartHeight
+                val barH = (count.toFloat() / maxCount) * chartH
+                val barTop = valueAreaH + chartH - barH
+                val barColor = if (isBest) primary else primary.copy(alpha = 0.42f)
+                val cornerR = CornerRadius(8f, 8f)
+
+                // Full rounded rect, then square off bottom corners
                 drawRoundRect(
-                    color = primary,
-                    topLeft = Offset(barLeft, chartHeight - barHeight),
-                    size = Size(barW, barHeight),
-                    cornerRadius = cornerRadius
+                    color = barColor,
+                    topLeft = Offset(barLeft, barTop),
+                    size = Size(barW, barH),
+                    cornerRadius = cornerR
+                )
+                val sqH = minOf(barH / 2f, 8f)
+                drawRect(
+                    color = barColor,
+                    topLeft = Offset(barLeft, valueAreaH + chartH - sqH),
+                    size = Size(barW, sqH)
+                )
+
+                // Count value above bar
+                setColor(valuePaint, if (isBest) primary else labelColor)
+                valuePaint.isFakeBoldText = isBest
+                drawContext.canvas.nativeCanvas.drawText(
+                    "$count",
+                    xCenter,
+                    barTop - 5f,
+                    valuePaint
                 )
             }
 
+            // Month label
+            setColor(labelPaint, if (isBest && count > 0) primary else labelColor)
+            labelPaint.isFakeBoldText = isBest && count > 0
             drawContext.canvas.nativeCanvas.drawText(
                 monthLabels[index],
-                x + barWidth / 2f,
-                size.height,
-                paint
+                xCenter,
+                size.height - 2f,
+                labelPaint
             )
         }
     }

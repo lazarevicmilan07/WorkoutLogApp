@@ -231,22 +231,26 @@ fun MainContent(startDestination: String) {
                 currentRoute = currentRoute,
                 onMonthly = {
                     statsSubmenuVisible = false
-                    navController.navigate(Screen.StatsMonthly.route) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
+                    if (currentRoute != Screen.StatsMonthly.route) {
+                        navController.navigate(Screen.StatsMonthly.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
                         }
-                        launchSingleTop = true
-                        restoreState = true
                     }
                 },
                 onYearly = {
                     statsSubmenuVisible = false
-                    navController.navigate(Screen.StatsYearly.route) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
+                    if (currentRoute != Screen.StatsYearly.route) {
+                        navController.navigate(Screen.StatsYearly.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
                         }
-                        launchSingleTop = true
-                        restoreState = true
                     }
                 }
             )

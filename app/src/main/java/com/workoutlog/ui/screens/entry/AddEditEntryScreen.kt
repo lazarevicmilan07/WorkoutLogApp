@@ -198,7 +198,7 @@ fun AddEditEntrySheet(
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp, vertical = 10.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f))
+                            .background(Color(0xFFEF4444).copy(alpha = 0.15f))
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -206,7 +206,7 @@ fun AddEditEntrySheet(
                         Icon(
                             Icons.Default.Info,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
+                            tint = Color(0xFFEF4444),
                             modifier = Modifier.size(16.dp)
                         )
                         Text(

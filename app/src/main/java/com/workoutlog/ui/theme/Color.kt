@@ -60,18 +60,18 @@ val BackgroundDark = Color(0xFF030712)
 
 // Workout type colors
 val WorkoutColors = listOf(
-    Color(0xFFE53935), // Red
-    Color(0xFF1E88E5), // Blue
-    Color(0xFF43A047), // Green
-    Color(0xFFFB8C00), // Orange
-    Color(0xFF8E24AA), // Purple
-    Color(0xFFD81B60), // Pink
-    Color(0xFF00ACC1), // Cyan
-    Color(0xFF5E35B1), // Deep Purple
-    Color(0xFF3949AB), // Indigo
-    Color(0xFF00897B), // Teal
-    Color(0xFF7CB342), // Light Green
-    Color(0xFFFF7043), // Deep Orange
+    Color(0xFFF44336), // Red
+    Color(0xFF2196F3), // Blue
+    Color(0xFF4CAF50), // Green
+    Color(0xFFFF9800), // Orange
+    Color(0xFF9C27B0), // Purple
+    Color(0xFFE91E63), // Pink
+    Color(0xFF00BCD4), // Cyan
+    Color(0xFF673AB7), // Deep Purple
+    Color(0xFF3F51B5), // Indigo
+    Color(0xFF009688), // Teal
+    Color(0xFF8BC34A), // Light Green
+    Color(0xFFFF5722), // Deep Orange
 )
 
 // Nav bar

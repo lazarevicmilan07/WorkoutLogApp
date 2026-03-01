@@ -13,6 +13,7 @@ import com.workoutlog.domain.model.YearlyReport
 import com.workoutlog.domain.model.toDomain
 import com.workoutlog.domain.model.toEpochMilli
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,16 +40,33 @@ class ReportsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ReportsUiState())
     val uiState: StateFlow<ReportsUiState> = _uiState.asStateFlow()
 
+    private var loadJob: Job? = null
+
     init {
         loadReport()
     }
 
     fun refresh() {
-        loadReport()
+        // Silent background refresh — no loading spinner so the screen doesn't blink on resume
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            val types = typeRepository.getAll().map { it.toDomain() }
+            val typeMap = types.associateBy { it.id }
+            val state = _uiState.value
+            if (state.isMonthly) {
+                loadMonthlyReport(state.selectedYear, state.selectedMonth, typeMap)
+            } else {
+                loadYearlyReport(state.selectedYear, typeMap)
+            }
+        }
     }
 
     fun setMonthly(isMonthly: Boolean) {
-        _uiState.value = _uiState.value.copy(isMonthly = isMonthly)
+        val current = _uiState.value
+        // Skip if already showing correct mode with data loaded
+        if (current.isMonthly == isMonthly &&
+            (if (isMonthly) current.monthlyReport != null else current.yearlyReport != null)) return
+        _uiState.value = current.copy(isMonthly = isMonthly)
         loadReport()
     }
 
@@ -90,9 +108,9 @@ class ReportsViewModel @Inject constructor(
     }
 
     private fun loadReport() {
+        loadJob?.cancel()
         _uiState.value = _uiState.value.copy(isLoading = true)
-
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             val types = typeRepository.getAll().map { it.toDomain() }
             val typeMap = types.associateBy { it.id }
             val state = _uiState.value
@@ -153,21 +171,20 @@ class ReportsViewModel @Inject constructor(
         val entries = entryRepository.getEntriesBetweenDates(startDate, endDate)
         val typeCounts = entryRepository.getWorkoutTypeCountsBetween(startDate, endDate)
 
-        val monthlyGroups = entries.groupBy {
-            java.time.Instant.ofEpochMilli(it.date)
-                .atZone(java.time.ZoneId.systemDefault()).monthValue
-        }
-
-        val monthlyCounts = (1..12).map { month ->
-            MonthlyCountData(month, monthlyGroups[month]?.size ?: 0)
-        }
-
         val domainYearEntries = entries.map { it.toDomain(typeMap[it.workoutTypeId]) }
         val yearlyRestDays = domainYearEntries
             .filter { it.workoutType?.isRestDay == true }
             .map { it.date }
             .distinct()
             .size
+
+        // Monthly counts exclude rest days so bar chart heights reflect actual workouts
+        val workoutMonthlyGroups = domainYearEntries
+            .filter { it.workoutType?.isRestDay != true }
+            .groupBy { it.date.monthValue }
+        val monthlyCounts = (1..12).map { month ->
+            MonthlyCountData(month, workoutMonthlyGroups[month]?.size ?: 0)
+        }
 
         val report = YearlyReport(
             year = year,

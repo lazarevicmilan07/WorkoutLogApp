@@ -36,7 +36,7 @@ fun NavGraph(
         enterTransition = {
             val from = getNavIndex(initialState.destination.route)
             val to = getNavIndex(targetState.destination.route)
-            if (from >= 0 && to >= 0) {
+            if (from >= 0 && to >= 0 && from != to) {
                 val dir = if (to > from) 1 else -1
                 slideInHorizontally(tween(ANIM_DURATION)) { it / 3 * dir } + fadeIn(tween(ANIM_DURATION))
             } else {
@@ -46,7 +46,7 @@ fun NavGraph(
         exitTransition = {
             val from = getNavIndex(initialState.destination.route)
             val to = getNavIndex(targetState.destination.route)
-            if (from >= 0 && to >= 0) {
+            if (from >= 0 && to >= 0 && from != to) {
                 val dir = if (to > from) -1 else 1
                 slideOutHorizontally(tween(ANIM_DURATION)) { it / 3 * dir } + fadeOut(tween(ANIM_DURATION))
             } else {

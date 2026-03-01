@@ -37,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -243,19 +242,13 @@ fun MonthCalendar(
                         val entryName = dayEntries?.firstOrNull()?.workoutType?.name
 
                         val bgColor = when {
-                            hasEntries && entryColor != null -> entryColor.copy(alpha = 0.3f)
+                            hasEntries && entryColor != null -> entryColor.copy(alpha = 0.55f)
                             isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                             else -> Color.Transparent
                         }
 
-                        // Determine text color based on background brightness
                         val textColor = when {
-                            hasEntries && entryColor != null -> {
-                                if (entryColor.copy(alpha = 0.3f).luminance() > 0.5f)
-                                    Color(0xFF1A1A1A)
-                                else
-                                    MaterialTheme.colorScheme.onSurface
-                            }
+                            hasEntries -> Color.White
                             isToday -> MaterialTheme.colorScheme.primary
                             else -> MaterialTheme.colorScheme.onSurface
                         }
