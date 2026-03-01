@@ -65,7 +65,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -429,7 +429,7 @@ fun MonthlyReportContent(state: ReportsUiState) {
                             }
                             Row(
                                 modifier = Modifier
-                                    .padding(top = if (filteredCounts.isNotEmpty()) 14.dp else 0.dp)
+                                    .padding(top = if (filteredCounts.isNotEmpty()) 24.dp else 0.dp)
                                     .clickable(
                                         interactionSource = remember { MutableInteractionSource() },
                                         indication = null
@@ -447,8 +447,9 @@ fun MonthlyReportContent(state: ReportsUiState) {
                                         .size(width = 34.dp, height = 18.dp)
                                         .clip(RoundedCornerShape(9.dp))
                                         .background(
-                                            if (includeRestDays) MaterialTheme.colorScheme.primary
-                                            else if (isSystemInDarkTheme()) Color(0xFF1F2937) else Color(0xFFE5E7EB)
+                                            if (includeRestDays)
+                                                if (MaterialTheme.colorScheme.background.luminance() < 0.5f) Color(0xFF1D4ED8) else Color(0xFF93C5FD)
+                                            else if (MaterialTheme.colorScheme.background.luminance() < 0.5f) Color(0xFF1F2937) else Color(0xFFE5E7EB)
                                         )
                                         .padding(2.dp),
                                     contentAlignment = if (includeRestDays) Alignment.CenterEnd else Alignment.CenterStart
@@ -518,7 +519,18 @@ fun YearlyReportContent(state: ReportsUiState) {
     val bestMonthValue = if (bestMonthData != null && bestMonthData.count > 0) {
         Month.of(bestMonthData.month).getDisplayName(JTextStyle.FULL, Locale.getDefault())
     } else "—"
-    val avgPerMonth = if (elapsedMonths > 0) (actualWorkouts.toFloat() / elapsedMonths).roundToInt() else 0
+    val completedMonths = when {
+        report.year > currentYear -> 0
+        report.year == currentYear -> LocalDate.now().monthValue - 1
+        else -> 12
+    }
+    val completedWorkouts = when {
+        report.year == currentYear -> report.monthlyCounts
+            .filter { it.month < LocalDate.now().monthValue }
+            .sumOf { it.count }
+        else -> actualWorkouts
+    }
+    val avgPerMonth = if (completedMonths > 0) (completedWorkouts.toFloat() / completedMonths).roundToInt() else 0
     val favouriteWorkout = report.workoutTypeCounts
         .filter { !it.workoutType.isRestDay }
         .maxByOrNull { it.count }
@@ -666,7 +678,7 @@ fun YearlyReportContent(state: ReportsUiState) {
                             }
                             Row(
                                 modifier = Modifier
-                                    .padding(top = if (filteredCounts.isNotEmpty()) 14.dp else 0.dp)
+                                    .padding(top = if (filteredCounts.isNotEmpty()) 24.dp else 0.dp)
                                     .clickable(
                                         interactionSource = remember { MutableInteractionSource() },
                                         indication = null
@@ -684,8 +696,9 @@ fun YearlyReportContent(state: ReportsUiState) {
                                         .size(width = 34.dp, height = 18.dp)
                                         .clip(RoundedCornerShape(9.dp))
                                         .background(
-                                            if (includeRestDays) MaterialTheme.colorScheme.primary
-                                            else if (isSystemInDarkTheme()) Color(0xFF1F2937) else Color(0xFFE5E7EB)
+                                            if (includeRestDays)
+                                                if (MaterialTheme.colorScheme.background.luminance() < 0.5f) Color(0xFF1D4ED8) else Color(0xFF93C5FD)
+                                            else if (MaterialTheme.colorScheme.background.luminance() < 0.5f) Color(0xFF1F2937) else Color(0xFFE5E7EB)
                                         )
                                         .padding(2.dp),
                                     contentAlignment = if (includeRestDays) Alignment.CenterEnd else Alignment.CenterStart
