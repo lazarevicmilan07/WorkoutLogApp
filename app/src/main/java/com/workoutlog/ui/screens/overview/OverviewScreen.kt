@@ -247,8 +247,9 @@ fun MonthCalendar(
                             else -> Color.Transparent
                         }
 
+                        val isDarkTheme = MaterialTheme.colorScheme.background.red < 0.5f
                         val textColor = when {
-                            hasEntries -> Color.White
+                            hasEntries -> if (isDarkTheme) Color.White else Color.Black
                             isToday -> MaterialTheme.colorScheme.primary
                             else -> MaterialTheme.colorScheme.onSurface
                         }
