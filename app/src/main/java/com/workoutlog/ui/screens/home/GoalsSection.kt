@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
@@ -63,19 +64,16 @@ import com.workoutlog.domain.model.WorkoutType
 import com.workoutlog.domain.model.label
 
 private fun GoalPeriod.accentColor(): Color = when (this) {
-    GoalPeriod.WEEKLY  -> Color(0xFF5B8DEE)  // blue
     GoalPeriod.MONTHLY -> Color(0xFF9C6ADE)  // purple
     GoalPeriod.YEARLY  -> Color(0xFFE8A838)  // amber
 }
 
 private fun GoalPeriod.shortLabel(): String = when (this) {
-    GoalPeriod.WEEKLY  -> "Weekly"
     GoalPeriod.MONTHLY -> "Monthly"
     GoalPeriod.YEARLY  -> "Yearly"
 }
 
 private fun GoalPeriod.letter(): String = when (this) {
-    GoalPeriod.WEEKLY  -> "W"
     GoalPeriod.MONTHLY -> "M"
     GoalPeriod.YEARLY  -> "Y"
 }
@@ -222,15 +220,20 @@ fun GoalProgressCard(
                 )
             }
             Spacer(Modifier.width(7.dp))
-            if (isComplete) {
-                Icon(
+            when {
+                isComplete -> Icon(
                     imageVector = Icons.Filled.CheckCircle,
                     contentDescription = "Goal completed",
                     tint = Color(0xFF4A9B6F),
                     modifier = Modifier.size(14.dp)
                 )
-            } else {
-                Text(
+                goalProgress.isPast -> Icon(
+                    imageVector = Icons.Filled.Cancel,
+                    contentDescription = "Goal not completed",
+                    tint = Color(0xFFE05252),
+                    modifier = Modifier.size(14.dp)
+                )
+                else -> Text(
                     text = "$pct%",
                     fontWeight = FontWeight.SemiBold,
                     color = accentColor,
@@ -258,7 +261,7 @@ fun GoalManagementSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var editingGoalId by remember { mutableStateOf(initialEditGoalId) }
-    var selectedPeriod by remember { mutableStateOf(GoalPeriod.WEEKLY) }
+    var selectedPeriod by remember { mutableStateOf(GoalPeriod.MONTHLY) }
     var selectedTypeId by remember { mutableStateOf<Long?>(null) }
     var targetCount by remember { mutableIntStateOf(3) }
     var targetText by remember { mutableStateOf("3") }
@@ -273,7 +276,7 @@ fun GoalManagementSheet(
             targetCount = eg.goal.targetCount
             targetText = eg.goal.targetCount.toString()
         } else {
-            selectedPeriod = GoalPeriod.WEEKLY
+            selectedPeriod = GoalPeriod.MONTHLY
             selectedTypeId = null
             targetCount = 3
             targetText = "3"
@@ -404,7 +407,6 @@ fun GoalManagementSheet(
                         label = {
                             Text(
                                 text = when (period) {
-                                    GoalPeriod.WEEKLY  -> "Weekly"
                                     GoalPeriod.MONTHLY -> "Monthly"
                                     GoalPeriod.YEARLY  -> "Yearly"
                                 },

@@ -10,7 +10,7 @@ import com.workoutlog.domain.model.GoalPeriod
 import com.workoutlog.domain.model.WorkoutEntry
 import com.workoutlog.domain.model.WorkoutGoal
 import com.workoutlog.domain.model.WorkoutType
-import com.workoutlog.domain.model.getCurrentDateRange
+import com.workoutlog.domain.model.getDateRangeForMonth
 import com.workoutlog.domain.model.label
 import com.workoutlog.domain.model.toDomain
 import com.workoutlog.domain.model.toEpochMilli
@@ -26,12 +26,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
 import javax.inject.Inject
 
 data class GoalWithProgress(
     val goal: WorkoutGoal,
     val current: Int,
-    val periodLabel: String
+    val periodLabel: String,
+    val isPast: Boolean = false
 )
 
 data class HomeUiState(
@@ -59,27 +61,23 @@ class HomeViewModel @Inject constructor(
     private val _currentMonth = MutableStateFlow(YearMonth.now())
     private val _selectedFilters = MutableStateFlow<Set<Long>>(emptySet())
 
-    // Covers the full current calendar year — used for goal progress calculation
-    private val _yearlyEntriesFlow = run {
-        val today = LocalDate.now()
-        val yearStart = LocalDate.of(today.year, 1, 1).toEpochMilli()
-        val yearEnd = LocalDate.of(today.year, 12, 31).toEpochMilli()
-        entryRepository.getEntriesBetweenDatesFlow(yearStart, yearEnd)
-    }
-
     private val _goalProgressFlow = _currentMonth.flatMapLatest { month ->
+        val yearStart = LocalDate.of(month.year, 1, 1).toEpochMilli()
+        val yearEnd = LocalDate.of(month.year, 12, 31).toEpochMilli()
         combine(
             goalRepository.getGoalsForMonthFlow(month.year, month.monthValue),
             typeRepository.getAllFlow(),
-            _yearlyEntriesFlow
-        ) { goalEntities, typeEntities, yearlyEntries ->
+            entryRepository.getEntriesBetweenDatesFlow(yearStart, yearEnd)
+        ) { goalEntities, typeEntities, viewedYearEntries ->
             val typeMap = typeEntities.associate { it.id to it.toDomain() }
+            val nowMillis = LocalDate.now()
+                .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
             goalEntities.map { goalEntity ->
                 val goal = goalEntity.toDomain(typeMap[goalEntity.workoutTypeId])
-                val (startMillis, endMillis) = goal.period.getCurrentDateRange()
+                val (startMillis, endMillis) = goal.period.getDateRangeForMonth(month)
 
-                val count = yearlyEntries.count { entry ->
+                val count = viewedYearEntries.count { entry ->
                     entry.date in startMillis..endMillis && when {
                         goal.workoutTypeId != null -> entry.workoutTypeId == goal.workoutTypeId
                         else -> typeMap[entry.workoutTypeId]?.isRestDay == false
@@ -89,7 +87,8 @@ class HomeViewModel @Inject constructor(
                 GoalWithProgress(
                     goal = goal,
                     current = count,
-                    periodLabel = goal.period.label()
+                    periodLabel = goal.period.label(),
+                    isPast = endMillis < nowMillis
                 )
             }.sortedBy { it.goal.period.ordinal }
         }

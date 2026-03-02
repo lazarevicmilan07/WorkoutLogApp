@@ -162,7 +162,8 @@ fun DashStatCard(
     accentColor: Color,
     label: String,
     value: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    labelMinLines: Int = 1
 ) {
     Column(
         modifier = modifier
@@ -181,11 +182,21 @@ fun DashStatCard(
                 icon()
             }
             Spacer(Modifier.width(7.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = accentColor
-            )
+            // Invisible spacer forces the Box to the minimum label height;
+            // the visible label is then centered within that height.
+            Box(contentAlignment = Alignment.CenterStart) {
+                Text(
+                    text = " ",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Transparent,
+                    minLines = labelMinLines
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = accentColor
+                )
+            }
         }
         Spacer(Modifier.height(4.dp))
         Text(

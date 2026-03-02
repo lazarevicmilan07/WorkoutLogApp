@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -550,8 +549,9 @@ fun YearlyReportContent(state: ReportsUiState) {
         // 3×2 dash stat cards
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // Row 1: Workouts · Active Months
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     DashStatCard(
@@ -566,25 +566,28 @@ fun YearlyReportContent(state: ReportsUiState) {
                         accentColor = greenAccent,
                         label = "Workouts",
                         value = "$actualWorkouts / $daysElapsed",
-                        modifier = Modifier.weight(1f).fillMaxHeight()
+                        modifier = Modifier.weight(1f),
+                        labelMinLines = 2
                     )
                     DashStatCard(
                         icon = {
                             Icon(
-                                Icons.Default.BarChart,
+                                Icons.Default.DateRange,
                                 contentDescription = null,
-                                tint = blueAccent,
+                                tint = tealAccent,
                                 modifier = Modifier.size(16.dp)
                             )
                         },
-                        accentColor = blueAccent,
-                        label = "Avg/Month Consistency",
-                        value = "$consistencyPct%",
-                        modifier = Modifier.weight(1f).fillMaxHeight()
+                        accentColor = tealAccent,
+                        label = "Active Months",
+                        value = "$activeMonths / $elapsedMonths",
+                        modifier = Modifier.weight(1f),
+                        labelMinLines = 2
                     )
                 }
+                // Row 2: Best Month · Favourite
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     DashStatCard(
@@ -599,7 +602,8 @@ fun YearlyReportContent(state: ReportsUiState) {
                         accentColor = violetAccent,
                         label = "Best Month",
                         value = bestMonthValue,
-                        modifier = Modifier.weight(1f).fillMaxHeight()
+                        modifier = Modifier.weight(1f),
+                        labelMinLines = 2
                     )
                     DashStatCard(
                         icon = {
@@ -613,13 +617,30 @@ fun YearlyReportContent(state: ReportsUiState) {
                         accentColor = Color(0xFF29B6F6),
                         label = "Favourite",
                         value = favouriteWorkout,
-                        modifier = Modifier.weight(1f).fillMaxHeight()
+                        modifier = Modifier.weight(1f),
+                        labelMinLines = 2
                     )
                 }
+                // Row 3: Avg/Month Consistency · Avg/Month Workouts
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    DashStatCard(
+                        icon = {
+                            Icon(
+                                Icons.Default.BarChart,
+                                contentDescription = null,
+                                tint = blueAccent,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        accentColor = blueAccent,
+                        label = "Avg/Month Consistency",
+                        value = "$consistencyPct%",
+                        modifier = Modifier.weight(1f),
+                        labelMinLines = 2
+                    )
                     DashStatCard(
                         icon = {
                             Icon(
@@ -632,21 +653,8 @@ fun YearlyReportContent(state: ReportsUiState) {
                         accentColor = orangeAccent,
                         label = "Avg/Month Workouts",
                         value = if (avgPerMonth > 0) "$avgPerMonth" else "—",
-                        modifier = Modifier.weight(1f).fillMaxHeight()
-                    )
-                    DashStatCard(
-                        icon = {
-                            Icon(
-                                Icons.Default.DateRange,
-                                contentDescription = null,
-                                tint = tealAccent,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        },
-                        accentColor = tealAccent,
-                        label = "Active Months",
-                        value = "$activeMonths / $elapsedMonths",
-                        modifier = Modifier.weight(1f).fillMaxHeight()
+                        modifier = Modifier.weight(1f),
+                        labelMinLines = 2
                     )
                 }
             }
