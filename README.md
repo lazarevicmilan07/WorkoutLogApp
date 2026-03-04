@@ -17,10 +17,10 @@ A production-ready Android workout tracking app with offline-first architecture,
 - Rest day flag for dedicated rest day tracking
 
 ### Goals
-- **Weekly, Monthly, and Yearly goals** - Set a target workout count for any period
+- **Monthly and Yearly goals** - Set a target workout count for any period
 - **Type-specific or all-types** - Target a specific workout type or count all non-rest workouts
 - **Live progress** - Progress bar and current/target count updated in real time on the home screen
-- Period badge (W / M / Y) with color-coded accent per goal type
+- Period badge (M / Y) with color-coded accent per goal type
 
 ### Stats & Reports
 - **Monthly Stats** - Bar chart of daily workout counts with period totals and type breakdown
@@ -117,13 +117,13 @@ data class WorkoutType(
 ```kotlin
 data class WorkoutGoal(
     val id: Long,
-    val period: GoalPeriod,         // WEEKLY, MONTHLY, YEARLY
+    val period: GoalPeriod,         // MONTHLY, YEARLY
     val targetCount: Int,
     val workoutTypeId: Long?,       // Null = all non-rest-day types
     val isActive: Boolean,
     val createdAt: Long,
     val boundYear: Int,
-    val boundMonth: Int?            // Null for YEARLY goals
+    val boundMonth: Int?            // Null for YEARLY goals; set for MONTHLY goals
 )
 ```
 
