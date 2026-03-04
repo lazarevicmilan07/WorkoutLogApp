@@ -3,11 +3,14 @@ package com.workoutlog.util
 import android.content.Context
 import android.net.Uri
 import com.workoutlog.data.local.entity.WorkoutEntryEntity
+import com.workoutlog.data.local.entity.WorkoutGoalEntity
 import com.workoutlog.data.local.entity.WorkoutTypeEntity
 import com.workoutlog.data.repository.WorkoutEntryRepository
+import com.workoutlog.data.repository.WorkoutGoalRepository
 import com.workoutlog.data.repository.WorkoutTypeRepository
 import com.workoutlog.domain.model.BackupData
 import com.workoutlog.domain.model.BackupWorkoutEntry
+import com.workoutlog.domain.model.BackupWorkoutGoal
 import com.workoutlog.domain.model.BackupWorkoutType
 import kotlinx.serialization.json.Json
 
@@ -23,7 +26,8 @@ object BackupUtil {
         context: Context,
         uri: Uri,
         types: List<WorkoutTypeEntity>,
-        entries: List<WorkoutEntryEntity>
+        entries: List<WorkoutEntryEntity>,
+        goals: List<WorkoutGoalEntity>
     ) {
         val backupData = BackupData(
             workoutTypes = types.map { type ->
@@ -44,6 +48,18 @@ object BackupUtil {
                     note = entry.note,
                     durationMinutes = entry.durationMinutes,
                     caloriesBurned = entry.caloriesBurned
+                )
+            },
+            workoutGoals = goals.map { goal ->
+                BackupWorkoutGoal(
+                    id = goal.id,
+                    period = goal.period,
+                    targetCount = goal.targetCount,
+                    workoutTypeId = goal.workoutTypeId,
+                    isActive = goal.isActive,
+                    createdAt = goal.createdAt,
+                    boundYear = goal.boundYear,
+                    boundMonth = goal.boundMonth
                 )
             }
         )
@@ -75,11 +91,13 @@ object BackupUtil {
     suspend fun restoreBackup(
         backupData: BackupData,
         typeRepository: WorkoutTypeRepository,
-        entryRepository: WorkoutEntryRepository
+        entryRepository: WorkoutEntryRepository,
+        goalRepository: WorkoutGoalRepository
     ) {
         // Clear existing data
         entryRepository.deleteAll()
         typeRepository.deleteAll()
+        goalRepository.deleteAll()
 
         // Restore types
         val typeEntities = backupData.workoutTypes.map { bt ->
@@ -106,5 +124,20 @@ object BackupUtil {
             )
         }
         entryRepository.insertAll(entryEntities)
+
+        // Restore goals (field added in version 2; older backups will have empty list)
+        val goalEntities = backupData.workoutGoals.map { bg ->
+            WorkoutGoalEntity(
+                id = bg.id,
+                period = bg.period,
+                targetCount = bg.targetCount,
+                workoutTypeId = bg.workoutTypeId,
+                isActive = bg.isActive,
+                createdAt = bg.createdAt,
+                boundYear = bg.boundYear,
+                boundMonth = bg.boundMonth
+            )
+        }
+        goalRepository.insertAll(goalEntities)
     }
 }

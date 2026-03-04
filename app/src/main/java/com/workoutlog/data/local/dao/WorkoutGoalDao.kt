@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Delete
 import com.workoutlog.data.local.entity.WorkoutGoalEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -34,4 +35,10 @@ interface WorkoutGoalDao {
 
     @Query("DELETE FROM workout_goals WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(goals: List<WorkoutGoalEntity>)
+
+    @Query("DELETE FROM workout_goals")
+    suspend fun deleteAll()
 }

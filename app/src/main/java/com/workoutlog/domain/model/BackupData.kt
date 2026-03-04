@@ -4,10 +4,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class BackupData(
-    val version: Int = 1,
+    val version: Int = 2,
     val createdAt: Long = System.currentTimeMillis(),
     val workoutTypes: List<BackupWorkoutType>,
-    val workoutEntries: List<BackupWorkoutEntry>
+    val workoutEntries: List<BackupWorkoutEntry>,
+    val workoutGoals: List<BackupWorkoutGoal> = emptyList()
 )
 
 @Serializable
@@ -28,4 +29,16 @@ data class BackupWorkoutEntry(
     val note: String? = null,
     val durationMinutes: Int? = null,
     val caloriesBurned: Int? = null
+)
+
+@Serializable
+data class BackupWorkoutGoal(
+    val id: Long,
+    val period: String,
+    val targetCount: Int,
+    val workoutTypeId: Long? = null,
+    val isActive: Boolean = true,
+    val createdAt: Long,
+    val boundYear: Int = 0,
+    val boundMonth: Int? = null
 )

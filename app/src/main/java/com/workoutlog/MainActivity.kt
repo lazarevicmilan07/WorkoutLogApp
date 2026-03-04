@@ -1,6 +1,7 @@
 package com.workoutlog
 
 import android.os.Bundle
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -42,6 +43,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,13 +55,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.MobileAds
+import com.workoutlog.BuildConfig
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -90,6 +102,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        MobileAds.initialize(this) {}
+
         setContent {
             val mainViewModel: MainViewModel = hiltViewModel()
             val themeMode by mainViewModel.themeMode.collectAsStateWithLifecycle()
@@ -102,6 +116,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     if (onboardingCompleted != null) {
                         MainContent(
+                            activity = this@MainActivity,
                             startDestination = if (onboardingCompleted == true)
                                 Screen.Home.route else Screen.Onboarding.route
                         )
@@ -113,7 +128,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainContent(startDestination: String) {
+fun MainContent(activity: MainActivity, startDestination: String) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -152,6 +167,39 @@ fun MainContent(startDestination: String) {
     val navBarBg = if (isDark) NavBarBgDark else NavBarBgLight
     val navBarAccent = if (isDark) NavBarAccentDark else NavBarAccentLight
     val navBarUnselected = if (isDark) NavBarUnselectedDark else NavBarUnselectedLight
+
+    val adRoutes = setOf(
+        Screen.WorkoutTypes.route,
+        Screen.Settings.route,
+        Screen.StatsMonthly.route
+    )
+    val showAd = currentRoute in adRoutes
+
+    val configuration = LocalConfiguration.current
+    val screenWidthDp = configuration.screenWidthDp
+    val adView = remember {
+        AdView(activity).apply {
+            setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(activity, screenWidthDp))
+            adUnitId = BuildConfig.ADMOB_BANNER_ID
+            loadAd(AdRequest.Builder().build())
+        }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> adView.pause()
+                Lifecycle.Event.ON_RESUME -> adView.resume()
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            adView.destroy()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -213,6 +261,19 @@ fun MainContent(startDestination: String) {
                 )
             }
         }
+
+        // Ad banner overlay — sits above the nav bar, visibility toggled per route
+        AndroidView(
+            factory = { adView },
+            update = { view ->
+                view.visibility = if (showAd) View.VISIBLE else View.GONE
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 56.dp)
+                .fillMaxWidth()
+        )
 
         // Stats submenu — floating overlay outside Scaffold so it never affects nav bar height
         AnimatedVisibility(

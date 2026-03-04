@@ -65,7 +65,7 @@ import com.workoutlog.domain.model.label
 
 private fun GoalPeriod.accentColor(): Color = when (this) {
     GoalPeriod.MONTHLY -> Color(0xFF9C6ADE)  // purple
-    GoalPeriod.YEARLY  -> Color(0xFFE8A838)  // amber
+    GoalPeriod.YEARLY  -> Color(0xFFD4720A)  // burnt orange
 }
 
 private fun GoalPeriod.shortLabel(): String = when (this) {

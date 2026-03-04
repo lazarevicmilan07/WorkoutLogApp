@@ -22,6 +22,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3940256099942544/6300978111\"")
+            manifestPlaceholders["ADMOB_APP_ID"] = "ca-app-pub-3940256099942544~3347511713"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -29,6 +33,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-TODO/TODO\"")
+            manifestPlaceholders["ADMOB_APP_ID"] = "ca-app-pub-TODO~TODO"
         }
     }
 
@@ -43,6 +49,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {
@@ -102,6 +109,9 @@ dependencies {
 
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
+
+    // AdMob
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
 
     // Charts - Vico
     implementation(libs.vico.compose.m3)

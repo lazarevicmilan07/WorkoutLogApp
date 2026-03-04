@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.workoutlog.data.datastore.SettingsDataStore
 import com.workoutlog.data.datastore.ThemeMode
 import com.workoutlog.data.repository.WorkoutEntryRepository
+import com.workoutlog.data.repository.WorkoutGoalRepository
 import com.workoutlog.data.repository.WorkoutTypeRepository
 import com.workoutlog.domain.model.DailyCountData
 import com.workoutlog.domain.model.MonthlyCountData
@@ -48,7 +49,8 @@ class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val settingsDataStore: SettingsDataStore,
     private val typeRepository: WorkoutTypeRepository,
-    private val entryRepository: WorkoutEntryRepository
+    private val entryRepository: WorkoutEntryRepository,
+    private val goalRepository: WorkoutGoalRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -92,7 +94,8 @@ class SettingsViewModel @Inject constructor(
                         LocalDate.of(year, 12, 31).toEpochMilli()
                     )
                 }
-                BackupUtil.createBackup(context, uri, types, entries)
+                val goals = goalRepository.getAll()
+                BackupUtil.createBackup(context, uri, types, entries, goals)
                 _events.emit(SettingsEvent.Message("Backup saved successfully"))
             } catch (e: Exception) {
                 _events.emit(SettingsEvent.Message("Backup failed: ${e.message}"))
@@ -111,7 +114,8 @@ class SettingsViewModel @Inject constructor(
                     BackupUtil.restoreBackup(
                         backupData,
                         typeRepository,
-                        entryRepository
+                        entryRepository,
+                        goalRepository
                     )
                     loadSettings()
                     _events.emit(SettingsEvent.Message("Data restored successfully"))
