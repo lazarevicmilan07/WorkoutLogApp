@@ -19,6 +19,7 @@ sealed class Screen(val route: String) {
     data object StatsYearly : Screen("stats_yearly")
     data object WorkoutTypes : Screen("workout_types")
     data object Settings : Screen("settings")
+    data object Premium : Screen("premium")
     data object AddEditEntry : Screen("add_edit_entry?entryId={entryId}&date={date}") {
         fun createRoute(entryId: Long? = null, date: String? = null): String {
             return "add_edit_entry?entryId=${entryId ?: -1}&date=${date ?: ""}"

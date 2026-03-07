@@ -113,6 +113,9 @@ dependencies {
     // AdMob
     implementation("com.google.android.gms:play-services-ads:23.6.0")
 
+    // Google Play Billing (forced to satisfy Play Console minimum version requirement)
+    implementation("com.android.billingclient:billing-ktx:7.1.1")
+
     // Charts - Vico
     implementation(libs.vico.compose.m3)
 

@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import com.workoutlog.ui.screens.home.HomeScreen
 import com.workoutlog.ui.screens.onboarding.OnboardingScreen
 import com.workoutlog.ui.screens.reports.ReportsScreen
+import com.workoutlog.ui.screens.premium.PremiumScreen
 import com.workoutlog.ui.screens.settings.SettingsScreen
 import com.workoutlog.ui.screens.workouttype.WorkoutTypesScreen
 
@@ -83,7 +84,15 @@ fun NavGraph(
         }
 
         composable(Screen.Settings.route) {
-            SettingsScreen()
+            SettingsScreen(
+                onShowPremium = { navController.navigate(Screen.Premium.route) }
+            )
+        }
+
+        composable(Screen.Premium.route) {
+            PremiumScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }

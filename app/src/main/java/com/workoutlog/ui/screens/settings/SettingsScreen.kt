@@ -1,5 +1,6 @@
 package com.workoutlog.ui.screens.settings
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -24,6 +25,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
@@ -74,10 +77,12 @@ import java.time.YearMonth
 
 @Composable
 fun SettingsScreen(
+    onShowPremium: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val isPremium by viewModel.isPremium.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -123,6 +128,7 @@ fun SettingsScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is SettingsEvent.Message -> snackbarHostState.showSnackbar(event.text)
+                is SettingsEvent.ShowPremiumRequired -> onShowPremium()
             }
         }
     }
@@ -156,6 +162,15 @@ fun SettingsScreen(
                     .padding(horizontal = 16.dp)
                     .padding(top = 16.dp, bottom = 16.dp)
             ) {
+            // Premium banner
+            if (!isPremium) {
+                PremiumBanner(onClick = {
+                    viewModel.setPremium(true)
+                    Toast.makeText(context, "Premium activated! All features unlocked.", Toast.LENGTH_SHORT).show()
+                })
+                Spacer(Modifier.height(20.dp))
+            }
+
             // Appearance section
             SectionTitle("Appearance")
             Card(
@@ -263,11 +278,16 @@ fun SettingsScreen(
                         icon = Icons.Default.Backup,
                         iconTint = MaterialTheme.colorScheme.primary,
                         title = "Backup data",
-                        subtitle = "Export all data to JSON file",
+                        subtitle = if (isPremium) "Export all data to JSON file" else "Premium feature",
                         isLoading = state.isBackingUp,
+                        isPremiumLocked = !isPremium,
                         onClick = {
-                            pendingExportFormat = "backup"
-                            showExportDialog = true
+                            if (isPremium) {
+                                pendingExportFormat = "backup"
+                                showExportDialog = true
+                            } else {
+                                onShowPremium()
+                            }
                         }
                     )
                     HorizontalDivider(
@@ -278,9 +298,13 @@ fun SettingsScreen(
                         icon = Icons.Default.Restore,
                         iconTint = MaterialTheme.colorScheme.primary,
                         title = "Restore data",
-                        subtitle = "Import data from JSON backup",
+                        subtitle = if (isPremium) "Import data from JSON backup" else "Premium feature",
                         isLoading = state.isRestoring,
-                        onClick = { showRestoreConfirmDialog = true }
+                        isPremiumLocked = !isPremium,
+                        onClick = {
+                            if (isPremium) showRestoreConfirmDialog = true
+                            else onShowPremium()
+                        }
                     )
                 }
             }
@@ -675,7 +699,8 @@ private fun SettingsActionRow(
     title: String,
     subtitle: String,
     isLoading: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isPremiumLocked: Boolean = false
 ) {
     Row(
         modifier = Modifier
@@ -699,14 +724,63 @@ private fun SettingsActionRow(
             )
         }
         Spacer(Modifier.width(8.dp))
-        if (isLoading) {
-            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-        } else {
-            Icon(
+        when {
+            isLoading -> CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            isPremiumLocked -> Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = "Premium",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            else -> Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PremiumBanner(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(1.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.Star,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(36.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Upgrade to Premium",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Unlock all features with a one-time purchase",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
+            }
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
     }

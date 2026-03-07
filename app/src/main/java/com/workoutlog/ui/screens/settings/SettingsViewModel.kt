@@ -23,10 +23,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
@@ -42,6 +44,7 @@ data class SettingsUiState(
 
 sealed class SettingsEvent {
     data class Message(val text: String) : SettingsEvent()
+    data object ShowPremiumRequired : SettingsEvent()
 }
 
 @HiltViewModel
@@ -55,6 +58,9 @@ class SettingsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    val isPremium: StateFlow<Boolean> = settingsDataStore.isPremium
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     private val _events = MutableSharedFlow<SettingsEvent>()
     val events = _events.asSharedFlow()
@@ -70,6 +76,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setPremium(isPremium: Boolean) {
+        viewModelScope.launch {
+            settingsDataStore.setPremium(isPremium)
+        }
+    }
+
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch {
             settingsDataStore.setThemeMode(mode)
@@ -78,6 +90,12 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun backup(uri: Uri, isMonthly: Boolean, year: Int, month: Int) {
+        viewModelScope.launch {
+            if (!settingsDataStore.isPremium.first()) {
+                _events.emit(SettingsEvent.ShowPremiumRequired)
+                return@launch
+            }
+        }
         _uiState.value = _uiState.value.copy(isBackingUp = true)
         viewModelScope.launch {
             try {
@@ -106,6 +124,12 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun restore(uri: Uri) {
+        viewModelScope.launch {
+            if (!settingsDataStore.isPremium.first()) {
+                _events.emit(SettingsEvent.ShowPremiumRequired)
+                return@launch
+            }
+        }
         _uiState.value = _uiState.value.copy(isRestoring = true)
         viewModelScope.launch {
             try {

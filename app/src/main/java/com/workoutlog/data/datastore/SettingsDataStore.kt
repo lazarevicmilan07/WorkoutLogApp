@@ -31,6 +31,7 @@ class SettingsDataStore @Inject constructor(
     private val onboardingCompletedKey = booleanPreferencesKey("onboarding_completed")
     private val showCaloriesKey = booleanPreferencesKey("show_calories")
     private val showDurationKey = booleanPreferencesKey("show_duration")
+    private val isPremiumKey = booleanPreferencesKey("is_premium")
 
     val themeMode: Flow<ThemeMode> = context.dataStore.data.map { prefs ->
         ThemeMode.fromValue(prefs[themeModeKey] ?: ThemeMode.SYSTEM.value)
@@ -48,6 +49,10 @@ class SettingsDataStore @Inject constructor(
         prefs[showDurationKey] ?: true
     }
 
+    val isPremium: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[isPremiumKey] ?: false
+    }
+
     suspend fun setThemeMode(mode: ThemeMode) {
         context.dataStore.edit { it[themeModeKey] = mode.value }
     }
@@ -62,5 +67,9 @@ class SettingsDataStore @Inject constructor(
 
     suspend fun setShowDuration(show: Boolean) {
         context.dataStore.edit { it[showDurationKey] = show }
+    }
+
+    suspend fun setPremium(isPremium: Boolean) {
+        context.dataStore.edit { it[isPremiumKey] = isPremium }
     }
 }

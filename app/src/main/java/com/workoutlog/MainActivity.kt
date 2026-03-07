@@ -67,7 +67,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.animation.doOnEnd
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -96,14 +95,20 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.ripple
+import androidx.activity.viewModels
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    private val mainViewModel: MainViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
+        super.onCreate(savedInstanceState)
+        splashScreen.setKeepOnScreenCondition { mainViewModel.onboardingCompleted.value == null }
+
         splashScreen.setOnExitAnimationListener { splashScreenView ->
             val iconView = splashScreenView.iconView
 
@@ -138,15 +143,14 @@ class MainActivity : ComponentActivity() {
                 start()
             }
         }
-        super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         MobileAds.initialize(this) {}
 
         setContent {
-            val mainViewModel: MainViewModel = hiltViewModel()
             val themeMode by mainViewModel.themeMode.collectAsStateWithLifecycle()
             val onboardingCompleted by mainViewModel.onboardingCompleted.collectAsStateWithLifecycle()
+            val isPremium by mainViewModel.isPremium.collectAsStateWithLifecycle()
 
             WorkoutLogTheme(themeMode = themeMode) {
                 Surface(
@@ -157,7 +161,8 @@ class MainActivity : ComponentActivity() {
                         MainContent(
                             activity = this@MainActivity,
                             startDestination = if (onboardingCompleted == true)
-                                Screen.Home.route else Screen.Onboarding.route
+                                Screen.Home.route else Screen.Onboarding.route,
+                            isPremium = isPremium
                         )
                     }
                 }
@@ -167,7 +172,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainContent(activity: MainActivity, startDestination: String) {
+fun MainContent(activity: MainActivity, startDestination: String, isPremium: Boolean) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -212,7 +217,7 @@ fun MainContent(activity: MainActivity, startDestination: String) {
         Screen.Settings.route,
         Screen.StatsMonthly.route
     )
-    val showAd = currentRoute in adRoutes
+    val showAd = !isPremium && currentRoute in adRoutes
 
     val configuration = LocalConfiguration.current
     val screenWidthDp = configuration.screenWidthDp
