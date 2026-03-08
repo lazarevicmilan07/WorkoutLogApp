@@ -95,9 +95,7 @@ class SettingsViewModel @Inject constructor(
                 _events.emit(SettingsEvent.ShowPremiumRequired)
                 return@launch
             }
-        }
-        _uiState.value = _uiState.value.copy(isBackingUp = true)
-        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isBackingUp = true)
             try {
                 val types = typeRepository.getAll()
                 val entries = if (isMonthly) {
@@ -129,9 +127,7 @@ class SettingsViewModel @Inject constructor(
                 _events.emit(SettingsEvent.ShowPremiumRequired)
                 return@launch
             }
-        }
-        _uiState.value = _uiState.value.copy(isRestoring = true)
-        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRestoring = true)
             try {
                 val backupData = BackupUtil.readBackup(context, uri)
                 if (backupData != null) {

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -139,22 +140,27 @@ class EntryViewModel @Inject constructor(
         _uiState.value = state.copy(isSaving = true)
 
         viewModelScope.launch {
-            val entry = WorkoutEntry(
-                id = if (state.isEditing) state.entryId else 0,
-                date = state.date,
-                workoutTypeId = state.selectedTypeId,
-                note = state.note.takeIf { it.isNotBlank() },
-                durationMinutes = state.durationMinutes.toIntOrNull(),
-                caloriesBurned = state.caloriesBurned.toIntOrNull()
-            )
+            try {
+                val entry = WorkoutEntry(
+                    id = if (state.isEditing) state.entryId else 0,
+                    date = state.date,
+                    workoutTypeId = state.selectedTypeId,
+                    note = state.note.takeIf { it.isNotBlank() },
+                    durationMinutes = state.durationMinutes.toIntOrNull(),
+                    caloriesBurned = state.caloriesBurned.toIntOrNull()
+                )
 
-            if (state.isEditing) {
-                entryRepository.update(entry.toEntity())
-            } else {
-                entryRepository.insert(entry.toEntity())
+                if (state.isEditing) {
+                    entryRepository.update(entry.toEntity())
+                } else {
+                    entryRepository.insert(entry.toEntity())
+                }
+
+                _events.emit(EntryEvent.Saved)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isSaving = false) }
+                _events.emit(EntryEvent.Error("Failed to save: ${e.message}"))
             }
-
-            _events.emit(EntryEvent.Saved)
         }
     }
 }

@@ -32,6 +32,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,6 +62,7 @@ fun OverviewScreen(
     viewModel: OverviewViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val monthFormatter = remember { DateTimeFormatter.ofPattern("MMMM yyyy") }
 
     LifecycleResumeEffect(Unit) {
         viewModel.refresh()
@@ -101,7 +103,7 @@ fun OverviewScreen(
                         Icon(Icons.Default.ChevronLeft, contentDescription = "Previous month")
                     }
                     Text(
-                        text = state.currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                        text = state.currentMonth.format(monthFormatter),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold
                     )

@@ -26,7 +26,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.ZoneId
 import javax.inject.Inject
 
 data class GoalWithProgress(
@@ -70,8 +69,7 @@ class HomeViewModel @Inject constructor(
             entryRepository.getEntriesBetweenDatesFlow(yearStart, yearEnd)
         ) { goalEntities, typeEntities, viewedYearEntries ->
             val typeMap = typeEntities.associate { it.id to it.toDomain() }
-            val nowMillis = LocalDate.now()
-                .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            val nowMillis = LocalDate.now().toEpochMilli()
 
             goalEntities.map { goalEntity ->
                 val goal = goalEntity.toDomain(typeMap[goalEntity.workoutTypeId])

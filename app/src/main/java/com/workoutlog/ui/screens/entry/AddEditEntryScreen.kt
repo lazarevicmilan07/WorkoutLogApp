@@ -85,6 +85,8 @@ fun AddEditEntrySheet(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val dayFormatter = remember { DateTimeFormatter.ofPattern("EEEE", Locale.getDefault()) }
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.getDefault()) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
@@ -168,12 +170,12 @@ fun AddEditEntrySheet(
                     Spacer(Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = state.date.format(DateTimeFormatter.ofPattern("EEEE", Locale.getDefault())),
+                            text = state.date.format(dayFormatter),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = state.date.format(DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.getDefault())),
+                            text = state.date.format(dateFormatter),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

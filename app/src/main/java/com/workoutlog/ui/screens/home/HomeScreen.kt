@@ -110,30 +110,32 @@ fun HomeScreen(
         showEntrySheet = true
     }
 
+    val monthFormatter = remember { DateTimeFormatter.ofPattern("MMMM") }
+    val yearFormatter = remember { DateTimeFormatter.ofPattern("yyyy") }
+
     val dragOffset = remember { Animatable(0f) }
     val scrollState = rememberScrollState()
     val density = LocalDensity.current
     val screenWidthPx = with(density) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
 
-    fun animatePrevious() {
-        scope.launch {
-            dragOffset.animateTo(screenWidthPx, tween(150))
-            viewModel.previousMonth()
-            scrollState.scrollTo(0)
-            dragOffset.snapTo(-screenWidthPx)
-            dragOffset.animateTo(0f, tween(200))
-        }
+    suspend fun doAnimatePrevious() {
+        dragOffset.animateTo(screenWidthPx, tween(150))
+        viewModel.previousMonth()
+        scrollState.scrollTo(0)
+        dragOffset.snapTo(-screenWidthPx)
+        dragOffset.animateTo(0f, tween(200))
     }
 
-    fun animateNext() {
-        scope.launch {
-            dragOffset.animateTo(-screenWidthPx, tween(150))
-            viewModel.nextMonth()
-            scrollState.scrollTo(0)
-            dragOffset.snapTo(screenWidthPx)
-            dragOffset.animateTo(0f, tween(200))
-        }
+    suspend fun doAnimateNext() {
+        dragOffset.animateTo(-screenWidthPx, tween(150))
+        viewModel.nextMonth()
+        scrollState.scrollTo(0)
+        dragOffset.snapTo(screenWidthPx)
+        dragOffset.animateTo(0f, tween(200))
     }
+
+    fun animatePrevious() { scope.launch { doAnimatePrevious() } }
+    fun animateNext() { scope.launch { doAnimateNext() } }
 
     Scaffold(contentWindowInsets = WindowInsets(0)) { padding ->
         if (state.isLoading) {
@@ -211,13 +213,13 @@ fun HomeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = state.currentMonth.format(DateTimeFormatter.ofPattern("MMMM")),
+                        text = state.currentMonth.format(monthFormatter),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = state.currentMonth.format(DateTimeFormatter.ofPattern("yyyy")),
+                        text = state.currentMonth.format(yearFormatter),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -242,20 +244,8 @@ fun HomeScreen(
                             onDragEnd = {
                                 scope.launch {
                                     when {
-                                        dragOffset.value > 100 -> {
-                                            dragOffset.animateTo(screenWidthPx, tween(150))
-                                            viewModel.previousMonth()
-                                            scrollState.scrollTo(0)
-                                            dragOffset.snapTo(-screenWidthPx)
-                                            dragOffset.animateTo(0f, tween(200))
-                                        }
-                                        dragOffset.value < -100 -> {
-                                            dragOffset.animateTo(-screenWidthPx, tween(150))
-                                            viewModel.nextMonth()
-                                            scrollState.scrollTo(0)
-                                            dragOffset.snapTo(screenWidthPx)
-                                            dragOffset.animateTo(0f, tween(200))
-                                        }
+                                        dragOffset.value > 100 -> doAnimatePrevious()
+                                        dragOffset.value < -100 -> doAnimateNext()
                                         else -> dragOffset.animateTo(0f, tween(150))
                                     }
                                 }
@@ -486,6 +476,7 @@ fun WorkoutEntryItem(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val entryDateFormatter = remember { DateTimeFormatter.ofPattern("MMM d") }
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             if (value == SwipeToDismissBoxValue.EndToStart) {
@@ -554,7 +545,7 @@ fun WorkoutEntryItem(
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = entry.date.format(DateTimeFormatter.ofPattern("MMM d")),
+                            text = entry.date.format(entryDateFormatter),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

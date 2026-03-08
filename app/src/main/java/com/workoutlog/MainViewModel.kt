@@ -20,7 +20,7 @@ class MainViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemeMode.SYSTEM)
 
     val onboardingCompleted: StateFlow<Boolean?> = settingsDataStore.onboardingCompleted
-        .map { it as Boolean? }
+        .map<Boolean, Boolean?> { it }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val isPremium: StateFlow<Boolean> = settingsDataStore.isPremium
