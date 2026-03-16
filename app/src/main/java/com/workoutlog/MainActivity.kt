@@ -245,7 +245,9 @@ fun MainContent(
         Screen.Settings.route,
         Screen.StatsMonthly.route
     )
-    val showAd = !isPremium && currentRoute in adRoutes
+    // TODO: Restore for production release
+    // val showAd = !isPremium && currentRoute in adRoutes
+    val showAd = false
 
     val configuration = LocalConfiguration.current
     val screenWidthDp = configuration.screenWidthDp

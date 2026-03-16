@@ -33,8 +33,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-TODO/TODO\"")
-            manifestPlaceholders["ADMOB_APP_ID"] = "ca-app-pub-TODO~TODO"
+            buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-7740019911335733/3000645653\"")
+            manifestPlaceholders["ADMOB_APP_ID"] = "ca-app-pub-7740019911335733~1331062102"
         }
     }
 
