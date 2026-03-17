@@ -18,3 +18,19 @@
 # iText
 -dontwarn com.itextpdf.**
 -keep class com.itextpdf.** { *; }
+
+# Suppress warnings for optional/unused transitive dependencies
+-dontwarn aQute.bnd.annotation.baseline.BaselineIgnore
+-dontwarn aQute.bnd.annotation.spi.ServiceConsumer
+-dontwarn aQute.bnd.annotation.spi.ServiceProvider
+-dontwarn edu.umd.cs.findbugs.annotations.Nullable
+-dontwarn edu.umd.cs.findbugs.annotations.SuppressFBWarnings
+-dontwarn java.awt.Shape
+-dontwarn javax.xml.stream.Location
+-dontwarn javax.xml.stream.XMLStreamException
+-dontwarn javax.xml.stream.XMLStreamReader
+-dontwarn net.sf.saxon.**
+-dontwarn org.osgi.framework.Bundle
+-dontwarn org.osgi.framework.BundleContext
+-dontwarn org.osgi.framework.FrameworkUtil
+-dontwarn org.osgi.framework.ServiceReference
