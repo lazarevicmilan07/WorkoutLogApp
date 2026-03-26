@@ -789,7 +789,7 @@ fun SettingsScreen(
                     Spacer(Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = stringResource(R.string.app_name),
+                            text = stringResource(R.string.app_name_full),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium
                         )
@@ -864,7 +864,7 @@ fun SettingsScreen(
             },
             title = {
                 Text(
-                    text = stringResource(R.string.app_name),
+                    text = stringResource(R.string.app_name_full),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -879,9 +879,14 @@ fun SettingsScreen(
                         text = stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
                         style = MaterialTheme.typography.bodyMedium
                     )
+                    Text(
+                        text = stringResource(R.string.app_name_full),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "\u00A9 ${java.time.Year.now().value} ${stringResource(R.string.app_name)}",
+                        text = "\u00A9 ${java.time.Year.now().value} ${stringResource(R.string.app_name_full)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )

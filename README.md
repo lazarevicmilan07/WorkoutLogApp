@@ -1,4 +1,4 @@
-# WorkoutLog
+# FitLog - Workout Journal
 
 A production-ready Android workout tracking app with offline-first architecture, clean Material 3 UI, and goal tracking.
 
